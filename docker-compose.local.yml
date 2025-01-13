@@ -1,0 +1,134 @@
+# version: '3.0'
+services:
+
+  web0:
+    image: chat_engine
+    command: python manage.py runserver 0.0.0.0:8080
+    build:
+      context: .
+    restart: always
+    volumes:
+      - .:/app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    env_file:
+      - ./.env
+    networks:
+      - app-web-net
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+  websocket:
+    image: chat_engine
+    restart: always
+    command: daphne -b 0.0.0.0 -p 8001 project.asgi:application
+    build:
+      context: .
+    volumes:
+      - .:/app
+    ports:
+      - "8081:8081"
+    depends_on:
+      - db
+    env_file:
+      - ./.env
+    networks:
+      - app-web-net
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - ./.env
+    networks:
+      - app-web-net
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    ports:
+      - "5050:80"
+    env_file:
+      - ./.env
+    networks:
+      - app-web-net
+
+  celery: 
+    image: chat_engine
+    command: celery -A project worker --loglevel=info
+    build:
+      context: .
+    env_file:
+      - ./.env
+    restart: always
+    volumes:
+      - .:/app
+    networks:
+      - app-web-net
+    depends_on:
+      - db
+
+  celery_beat:
+    image: chat_engine
+    command: celery -A project beat --loglevel=info
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+    networks:
+      - app-web-net
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+
+  redis:
+    image: redis:alpine
+    expose: 
+      - 6379
+    ports:
+      - "6379:6379"
+    networks:
+      - app-web-net
+    volumes:
+      - .:/app
+
+  flower:
+    image: chat_engine
+    restart: unless-stopped
+    command: bash -c "pip install flower && python -m debugpy --listen 0.0.0.0:3000 -m  celery -A project flower --loglevel=info --port=${FLOWER_PORT} --basic_auth=${FLOWER_USER}:${FLOWER_PSWD}" #--certfile=${FLOWER_CERTFILE} --keyfile=${FLOWER_KEYFILE}
+    env_file:
+      - ./.env
+    networks:
+      - app-web-net
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./.docker/nginx/local/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - web0
+    networks:
+      - app-web-net
+
+volumes:
+  postgres_data:
+
+
+networks:
+  app-web-net: 
+    driver: bridge

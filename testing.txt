@@ -1,0 +1,4 @@
+import requests
+url = "http://localhost:8085/api"
+
+response = requests.get(f"{self.base_url}/users/{user_id}/", timeout=5)

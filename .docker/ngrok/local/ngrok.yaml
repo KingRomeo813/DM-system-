@@ -1,0 +1,6 @@
+authtoken: 2nQ71Ln5dWmsWgf854RkMeepIzZ_5PMy2Lvb5cfz9opKmP26o
+tunnels:
+  web:
+    addr: web0:8080  # Pointing to your Docker service
+    proto: http
+    region: us  # Specify region (optional)

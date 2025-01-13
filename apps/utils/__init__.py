@@ -1,0 +1,1 @@
+from .permissions.authentication import CustomAuthenticated

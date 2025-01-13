@@ -1,0 +1,80 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+// URL: https://dbdiagram.io/d/677e9e490231eca7298de45c
+Table message {
+  conversation_id uuid
+  sender uuid
+  text string
+  reply_to uuid
+  html_content string
+  read_at datetime
+  edited_at datetime
+  read_status boolean
+
+  id uuid [primary key]
+  created_at datetime
+  updated_at datetime
+}
+
+Table message_info{
+  message_id uuid
+  seen_by uuid
+  
+  id uuid [primary key]
+  created_at datetime
+  updated_at datetime
+}
+
+Table attachments {
+  message_id uuid
+
+  id uuid [primary key]
+  created_at datetime
+  updated_at datetime
+
+}
+Table profile {
+  last_seen datetime
+  online boolean
+  user_id uuid
+  first_name string
+  last_name string
+  username string
+  
+  id uuid [primary key]
+  created_at datetime
+  updated_at datetime
+}
+Table conversation {
+  unread_count integer
+  last_message integer
+  approval boolean
+
+  id uuid [primary key]
+  created_at datetime
+  updated_at datetime
+
+}
+
+Table conversation_users{
+  profile_id uuid
+  conversation_id uuid 
+  accepted boolean
+
+  id uuid [primary key]
+  created_at datetime
+  updated_at datetime
+}
+
+
+Ref: conversation.id > conversation_users.conversation_id
+Ref: profile.id > conversation_users.profile_id
+// Ref: profile.id > status.user_id
+
+Ref: conversation.id > message.conversation_id
+
+Ref: message.id > attachments.message_id
+Ref: message.id > message.reply_to
+
+Ref: profile.id > message_info.message_id
+Ref: message.id > message_info.seen_by

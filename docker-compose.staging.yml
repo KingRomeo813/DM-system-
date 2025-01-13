@@ -1,0 +1,59 @@
+version: '3'
+services:
+
+  web0:
+    build: .
+    command: gunicorn modrek.wsgi:application --bind 0.0.0.0:8080
+    volumes:
+      - .:/app
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
+
+  web1:
+    build: .
+    command: gunicorn modrek.wsgi:application --bind 0.0.0.0:8080
+    volumes:
+      - .:/app
+    ports:
+      - "8082:8080"
+    depends_on:
+      - db
+
+  web2:
+    build: .
+    command: gunicorn modrek.wsgi:application --bind 0.0.0.0:8080
+    volumes:
+      - .:/app
+    ports:
+      - "8083:8080"
+    depends_on:
+      - db
+
+
+
+  db:
+    image: postgres:latest
+    env_file:
+      - ./.env
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "8080:80"
+    env_file:
+      - ./.env
+
+
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - web0
+      - web1
+      - web2

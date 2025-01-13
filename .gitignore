@@ -1,0 +1,95 @@
+# Python related
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+*.egg
+*.egg-info/
+.eggs/
+
+# Django specific
+*.log
+*.pot
+*.pyc
+*.sqlite3
+*.db
+
+# Ignore Django migrations
+!*/migrations/__init__.py
+
+# Ignore environment variables and secrets
+.env
+.env.*
+.envrc
+
+# Ignore compiled files
+*.mo
+*.pyc
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Virtual environment
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Editor specific files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Operating system specific
+.DS_Store
+Thumbs.db
+
+# Ignore static and media files
+staticfiles/
+media/
+
+# Ignore any temporary files or folders
+*.swp
+*.swo
+*.bak
+*.tmp
+*.temp
+*.orig
+*.sass-cache
+*.cache
+*.coverage
+*.tox
+
+# Ignore package manager files
+*.lock
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Ignore compiled JavaScript files
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+package-lock.json
+yarn.lock
+
+# Ignore coverage and test reports
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Ignore local security files
+*.pem
+*.key
+
+# docker-compose*
+# Dockerfile

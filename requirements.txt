@@ -1,0 +1,22 @@
+Django          
+djangorestframework
+psycopg2-binary
+elasticsearch
+celery
+redis
+django-cors-headers
+django-extensions
+djangorestframework-simplejwt
+requests
+phonenumbers
+ipython
+drf-yasg
+# Websockets
+channels[daphne]
+channels-redis
+
+dj-database-url
+django-filter
+mailersend
+Faker
+debugpy
