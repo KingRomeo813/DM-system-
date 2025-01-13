@@ -44,7 +44,6 @@ class Conversation(BaseModel):
     profiles = models.ManyToManyField(Profile, related_name="conversations")
     created_at = models.DateTimeField(auto_now_add=True)
     message_limit = models.IntegerField(default=0)
-
     def __str__(self):
         return self.name or f"Room {self.id}"
     
@@ -54,11 +53,17 @@ class Conversation(BaseModel):
     def more_than(self):
         return self.profiles.count() > 2
 
+    def clean(self):
+        if self.room_type == 'private' and self.pk and self.more_than():
+            raise ValidationError("A private conversation cannot have more than two participants.")
+
     def save(self, *args, **kwargs):
         if self.room_type == 'private' and self.more_than():
             raise ValueError("A private conversation cannot have more than two participants.")
 
         super().save(*args, **kwargs)
+        for profile in self.profiles.all():
+            self.settings.get_or_create(profile=profile)
 
 class Message(BaseModel):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")

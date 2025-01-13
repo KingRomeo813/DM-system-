@@ -31,20 +31,20 @@ class ConversationSettingsSerializer(serializers.ModelSerializer):
 
 
 class ConversationSettingsInfoSerializer(serializers.ModelSerializer):
-    settings = ConversationSettingsSerializer(read_only=True)
     class Meta:
         model = models.ConversationSettings
         depth = 1
         fields = "__all__"
 
 class ConversationSerializer(serializers.ModelSerializer):
-    settings = ConversationSettingsSerializer(read_only=True)
+    settings = ConversationSettingsSerializer(read_only=True, many=True)
     class Meta:
         model = models.Conversation
         fields = ["name", "room_type", "profiles", "created_at", "message_limit", "settings"]
 
 
 class ConversationInfoSerializer(serializers.ModelSerializer):
+    settings = ConversationSettingsSerializer(read_only=True, many=True)
     class Meta:
         model = models.Conversation
         depth = 1
