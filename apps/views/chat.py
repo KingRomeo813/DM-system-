@@ -68,6 +68,7 @@ class ConversationViewset(viewsets.ModelViewSet):
     }
     def get_queryset(self):
         user = self.request.user
+        print(type(user))
         return Conversation.objects.filter(
             is_active=True,
             profiles__in=[user]
@@ -77,6 +78,21 @@ class ConversationViewset(viewsets.ModelViewSet):
         if self.request.method in permissions.SAFE_METHODS:
             return ConversationInfoSerializer
         return ConversationSerializer
+    
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        profiles = list(Profile.objects.filter(id__in = data["profiles"]))
+        if Conversation.objects.filter(profiles__in = profiles).exists():
+            raise ValueError("A private conversation between these two profiles already exists.")
+
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            conversation = serializer.save()
+            for profile in profiles:
+                conversation.settings.get_or_create(profile=profile)
+        
+        # Return the created conversation data in the response
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     
 class ConversationSettingsViewset(viewsets.ModelViewSet):
     permission_classes = [CustomAuthenticated]
@@ -204,3 +220,16 @@ class RequestViewset(viewsets.ModelViewSet):
         if self.request.method in permissions.SAFE_METHODS:
             return RequestInfoSerializer
         return RequestSerializer
+
+    def create(self, request, *args, **kwargs):
+
+        data = request.data
+        # try:
+        #     receiver = Profile.objects.get(id = data["receiver"])
+        # except Exception as e:
+        #     raise ValueError(str(e))
+
+        serializer = self.get_serializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
