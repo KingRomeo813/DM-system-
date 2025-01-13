@@ -1,6 +1,8 @@
 import uuid
 from django.db import models
+from django.utils import timezone
 from django.core.exceptions import ValidationError
+
 from . import BaseModel
 
 
@@ -8,10 +10,10 @@ class Profile(BaseModel):
     user_id = models.CharField(max_length=255)
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
+    email = models.EmailField(unique=True)
     username = models.CharField(max_length=255)
     is_online = models.BooleanField(default=False)
     last_seen = models.DateTimeField(null=True, blank=True)
-    # profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
 
     def __str__(self):
         return f"{self.first_name} - {self.last_name}"
@@ -109,7 +111,7 @@ class Message(BaseModel):
             self.conversation.save()
             
 class ConversationSettings(BaseModel):
-    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="profile")
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="conversation_settings")
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="settings")
     is_muted = models.BooleanField(default=False)
     is_blocked = models.BooleanField(default=False)
@@ -124,6 +126,26 @@ class ConversationSettings(BaseModel):
     def __str__(self):
         return f"{self.profile.first_name} - {self.conversation}"
     
+
+    def save(self, *args, **kwargs):
+
+        if self.is_muted and not self.last_muted_at:
+            self.last_muted_at = timezone.now()
+        elif not self.is_muted:
+            self.last_muted_at = None
+
+        if self.is_blocked and not self.last_blocked_at:
+            self.last_blocked_at = timezone.now()
+        elif not self.is_blocked:
+            self.last_blocked_at = None
+
+        if self.is_trashed and not self.last_trashed_at:
+            self.last_trashed_at = timezone.now()
+        elif not self.is_trashed:
+            self.last_trashed_at = None
+
+        super().save(*args, **kwargs)
+
 class Request(BaseModel):
     sender = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="sent_requests")
     receiver = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="received_requests")

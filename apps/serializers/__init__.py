@@ -6,5 +6,7 @@ from .chat import (
     ConversationSettingsSerializer,
     ConversationSettingsInfoSerializer,
     FollowerSerializer,
-    FollowerInfoSerializer
+    FollowerInfoSerializer,
+    RequestSerializer,
+    RequestInfoSerializer
 )

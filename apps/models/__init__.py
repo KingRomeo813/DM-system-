@@ -5,5 +5,6 @@ from .chat import (
     Message,
     ConversationSettings,
     Profile,
-    Attachments
+    Attachments,
+    Request
 )

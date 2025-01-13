@@ -1,3 +1,6 @@
 from .chat import (MessageViewset, 
-                   ConversationViewset
+                   ConversationViewset,
+                   ConversationSettingsViewset,
+                   FollowerViewset,
+                   RequestViewset,
                    )
