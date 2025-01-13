@@ -220,3 +220,16 @@ class RequestViewset(viewsets.ModelViewSet):
         if self.request.method in permissions.SAFE_METHODS:
             return RequestInfoSerializer
         return RequestSerializer
+
+    def create(self, request, *args, **kwargs):
+
+        data = request.data
+        # try:
+        #     receiver = Profile.objects.get(id = data["receiver"])
+        # except Exception as e:
+        #     raise ValueError(str(e))
+
+        serializer = self.get_serializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

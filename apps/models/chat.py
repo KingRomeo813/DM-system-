@@ -166,18 +166,7 @@ class Request(BaseModel):
     )
     class Meta:
         unique_together = ('sender', 'receiver')
-        constraints = [
-            models.UniqueConstraint(
-                fields=['sender', 'receiver'],
-                name='unique_sender_receiver_pair',
-                condition=models.Q(sender__lt=models.F('receiver')),
-            ),
-            models.UniqueConstraint(
-                fields=['sender', 'receiver'],
-                name='unique_receiver_sender_pair',
-                condition=models.Q(sender__gt=models.F('receiver')),
-            ),
-        ]
+
     def can_send_message(self):
         if self.status == 'pending':
             raise ValidationError("You can't send a message until the recipient accepts your request.")

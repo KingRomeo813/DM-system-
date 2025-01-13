@@ -81,16 +81,17 @@ class MessageInfoSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 class RequestSerializer(serializers.ModelSerializer):
-    sender = ProfileSerializer(read_only=True)
-    receiver = ProfileSerializer(read_only=True)
+    sender = ProfileSerializer()
+    receiver = ProfileSerializer()
     class Meta:
+        depth = 1
         model = models.Request
         fields = "__all__"
 
 
 class RequestInfoSerializer(serializers.ModelSerializer):
     sender = ProfileSerializer(read_only=True)
-    conversation = ConversationSerializer(read_only=True)
+    receiver = ProfileSerializer(read_only=True)
     class Meta:
         model = models.Request
         depth = 1
