@@ -23,6 +23,15 @@ class Follower(models.Model):
     class Meta:
         unique_together = ('follower', 'following')
 
+    def mutual_friends(self):
+        return Follower.objects.filter(follower=self.following, following=self.follower)
+
+    def is_mutual_friend(self):
+        return self.mutual_friends().exists()
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
 class Conversation(models.Model):
     ROOM_TYPE_CHOICES = [
         ('private', 'Private'),
@@ -32,9 +41,22 @@ class Conversation(models.Model):
     room_type = models.CharField(max_length=10, choices=ROOM_TYPE_CHOICES, default="private")
     profiles = models.ManyToManyField(Profile, related_name="conversations")
     created_at = models.DateTimeField(auto_now_add=True)
+    message_limit = models.IntegerField(default=0)
 
     def __str__(self):
         return self.name or f"Room {self.id}"
+    
+    def profiles_count(self):
+        return self.profiles.all().count()
+
+    def more_than(self):
+        return self.profiles.count() > 2
+
+    def save(self, *args, **kwargs):
+        if self.room_type == 'private' and self.more_than():
+            raise ValueError("A private conversation cannot have more than two participants.")
+
+        super().save(*args, **kwargs)
 
 class Message(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")
@@ -46,6 +68,47 @@ class Message(models.Model):
     def __str__(self):
         return f"Message from {self.sender} in Room {self.conversation.id}"
 
+    def receiver(self):
+
+        participants = self.conversation.profiles.all()
+        if len(participants) != 2:
+            raise ValidationError("This message can only be sent in a conversation with two participants.")
+        receiver = participants.exclude(id=self.sender.id).first()
+        if receiver:
+            return receiver
+        return None
+
+
+    def can_send(self):
+        receiver = self.receiver()
+        
+        if receiver:
+            request = self.sender.sent_requests.filter(receiver=receiver).first()
+            if request and request.status == 'accepted':
+                return True
+            if not request:
+                raise ValidationError("No request found between the users.")
+            if request.status != 'accepted':
+                raise ValidationError("You can't send a message until the recipient accepts your request.")
+        
+        return False
+        
+    def clean(self):
+        if not self.can_send():
+            raise ValidationError("You can't send a message to this user yet.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        
+        if self.conversation.message_limit >= 1:
+            raise ValidationError("Message limit reached for this conversation.")
+        
+        super().save(*args, **kwargs)
+
+        if self.conversation.message_limit == 0:
+            self.conversation.message_limit += 1
+            self.conversation.save()
+            
 class MessageSettings(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="profile")
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="conversation")
@@ -61,6 +124,7 @@ class MessageSettings(models.Model):
 
     def __str__(self):
         return f"{self.profile.first_name} - {self.conversation}"
+    
 class Request(models.Model):
     sender = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="sent_requests")
     receiver = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="received_requests")
@@ -78,8 +142,22 @@ class Request(models.Model):
 
     class Meta:
         unique_together = ('sender', 'receiver')
-
-
+        constraints = [
+            models.UniqueConstraint(
+                fields=['sender', 'receiver'],
+                name='unique_sender_receiver_pair',
+                condition=models.Q(sender__lt=models.F('receiver')),
+            ),
+            models.UniqueConstraint(
+                fields=['sender', 'receiver'],
+                name='unique_receiver_sender_pair',
+                condition=models.Q(sender__gt=models.F('receiver')),
+            ),
+        ]
+    def can_send_message(self):
+        if self.status == 'pending':
+            raise ValidationError("You can't send a message until the recipient accepts your request.")
+        return True
 
 class Attachments(BaseModel):
     message = models.ForeignKey("apps.Message", on_delete=models.CASCADE, related_name="attachments")
