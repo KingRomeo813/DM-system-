@@ -5,6 +5,7 @@ from . import BaseModel
 
 
 class Profile(BaseModel):
+    user_id = models.CharField(max_length=255)
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
     username = models.CharField(max_length=255)
@@ -14,11 +15,10 @@ class Profile(BaseModel):
 
     def __str__(self):
         return f"{self.first_name} - {self.last_name}"
-class Follower(models.Model):
+class Follower(BaseModel):
     follower = models.ForeignKey(Profile, related_name="following", on_delete=models.CASCADE)
     following = models.ForeignKey(Profile, related_name="followers", on_delete=models.CASCADE)
     is_mutual = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('follower', 'following')
@@ -32,7 +32,7 @@ class Follower(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
 
-class Conversation(models.Model):
+class Conversation(BaseModel):
     ROOM_TYPE_CHOICES = [
         ('private', 'Private'),
         ('group', 'Group'),
@@ -58,12 +58,11 @@ class Conversation(models.Model):
 
         super().save(*args, **kwargs)
 
-class Message(models.Model):
+class Message(BaseModel):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")
     sender = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="messages")
     content = models.TextField(blank=True, null=True)
     is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Message from {self.sender} in Room {self.conversation.id}"
@@ -109,9 +108,9 @@ class Message(models.Model):
             self.conversation.message_limit += 1
             self.conversation.save()
             
-class MessageSettings(models.Model):
+class ConversationSettings(BaseModel):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="profile")
-    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="conversation")
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="settings")
     is_muted = models.BooleanField(default=False)
     is_blocked = models.BooleanField(default=False)
     is_trashed = models.BooleanField(default=False)
@@ -125,7 +124,7 @@ class MessageSettings(models.Model):
     def __str__(self):
         return f"{self.profile.first_name} - {self.conversation}"
     
-class Request(models.Model):
+class Request(BaseModel):
     sender = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="sent_requests")
     receiver = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="received_requests")
     status = models.CharField(
@@ -138,8 +137,6 @@ class Request(models.Model):
         ],
         default='pending'
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-
     class Meta:
         unique_together = ('sender', 'receiver')
         constraints = [

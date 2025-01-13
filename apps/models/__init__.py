@@ -3,7 +3,7 @@ from .chat import (
     Conversation,
     Follower,
     Message,
-    MessageSettings,
+    ConversationSettings,
     Profile,
     Attachments
 )
