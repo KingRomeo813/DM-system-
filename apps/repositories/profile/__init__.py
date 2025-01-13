@@ -28,11 +28,12 @@ class ProfileRepo():
             required_keys = {"id", "first_name", "last_name", "username"}
             if not required_keys.issubset(response):
                 raise ValueError(f"Missing required keys in response: {required_keys - response.keys()}")
-
+            print(response)
             data = {
                 "user_id": response["id"],
                 "first_name": response["first_name"],
                 "last_name": response["last_name"],
+                "email": response["email"],
                 "username": response["username"],
             }
             log.error(data)
@@ -50,6 +51,7 @@ class ProfileRepo():
                 data = {
                     "first_name": "": str,
                     "last_name": "": str,
+                    "email": "": str:
                     "user_id: "": int,
                     "username: "": str,
                     "online: False: Boolean,
@@ -59,7 +61,7 @@ class ProfileRepo():
                 Dict[str, Union[str, Dict[str, str]]]: Email data ready for sending.
         """
         try:
-            obj, _ = Profile.objects.get_or_create(user_id=data["user_id"])
+            obj, _ = Profile.objects.get_or_create(user_id=data["user_id"], email=data["email"])
             obj.first_name = data["first_name"]
             obj.last_name = data["last_name"]
             obj.username = data["username"]

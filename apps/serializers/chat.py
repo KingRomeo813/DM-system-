@@ -12,53 +12,86 @@ from .. import models
 logger = logging.getLogger(__name__)
 
 
-# class ProfileSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = models.Profile
-#         fields = "__all__"
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Profile
+        fields = "__all__"
 
 
-# class ProfileInfoSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = models.Profile
-#         depth = 1
-#         fields = "__all__"
+class ProfileInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Profile
+        depth = 1
+        fields = "__all__"
 
-# class ConversationSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = models.Conversation
-#         fields = "__all__"
-
-
-# class ConversationInfoSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = models.Conversation
-#         depth = 1
-#         fields = "__all__"
+class ConversationSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ConversationSettings
+        fields = "__all__"
 
 
-# class MessageSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = models.Message
-#         fields = "__all__"
+class ConversationSettingsInfoSerializer(serializers.ModelSerializer):
+    settings = ConversationSettingsSerializer(read_only=True)
+    class Meta:
+        model = models.ConversationSettings
+        depth = 1
+        fields = "__all__"
+
+class ConversationSerializer(serializers.ModelSerializer):
+    settings = ConversationSettingsSerializer(read_only=True)
+    class Meta:
+        model = models.Conversation
+        fields = ["name", "room_type", "profiles", "created_at", "message_limit", "settings"]
 
 
-# class MessageInfoSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = models.Message
-#         depth = 1
-#         fields = "__all__"
+class ConversationInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Conversation
+        depth = 1
+        fields = ["name", "room_type", "profiles", "created_at", "message_limit", "settings"]
+
+class FollowerSerializer(serializers.ModelSerializer):
+    profile = ProfileSerializer(read_only=True)
+    class Meta:
+        model = models.Follower
+        fields = "__all__"
 
 
-# class FriendsSerializer(serializers.ModelSerializer):
-#     profile = ProfileSerializer(read_only=True)
-#     class Meta:
-#         model = models.Friends
-#         fields = "__all__"
+class FollowerInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Follower
+        depth = 1
+        fields = "__all__"
 
 
-# class FriendsInfoSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = models.Friends
-        # depth = 1
-        # fields = "__all__"
+class MessageSerializer(serializers.ModelSerializer):
+    sender = ProfileSerializer(read_only=True)
+    conversation = ConversationSerializer(read_only=True)
+    class Meta:
+        model = models.Message
+        fields = "__all__"
+
+
+class MessageInfoSerializer(serializers.ModelSerializer):
+    sender = ProfileSerializer(read_only=True)
+    conversation = ConversationSerializer(read_only=True)
+    class Meta:
+        model = models.Message
+        depth = 1
+        fields = "__all__"
+
+class RequestSerializer(serializers.ModelSerializer):
+    sender = ProfileSerializer(read_only=True)
+    receiver = ProfileSerializer(read_only=True)
+    class Meta:
+        model = models.Request
+        fields = "__all__"
+
+
+class RequestInfoSerializer(serializers.ModelSerializer):
+    sender = ProfileSerializer(read_only=True)
+    conversation = ConversationSerializer(read_only=True)
+    class Meta:
+        model = models.Request
+        depth = 1
+        fields = "__all__"

@@ -1,8 +1,12 @@
-# from .chat import (
-#     MessageSerializer,
-#     MessageInfoSerializer,
-#     ConversationSerializer,
-#     ConversationInfoSerializer,
-#     FriendsSerializer,
-#     FriendsInfoSerializer
-# )
+from .chat import (
+    MessageSerializer,
+    MessageInfoSerializer,
+    ConversationSerializer,
+    ConversationInfoSerializer,
+    ConversationSettingsSerializer,
+    ConversationSettingsInfoSerializer,
+    FollowerSerializer,
+    FollowerInfoSerializer,
+    RequestSerializer,
+    RequestInfoSerializer
+)
