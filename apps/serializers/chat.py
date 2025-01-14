@@ -40,7 +40,7 @@ class ConversationSerializer(serializers.ModelSerializer):
     settings = ConversationSettingsSerializer(read_only=True, many=True)
     class Meta:
         model = models.Conversation
-        fields = ["name", "room_type", "profiles", "created_at", "message_limit", "settings"]
+        fields = ["id","name", "room_type", "profiles", "created_at", "message_limit", "settings"]
 
 
 class ConversationInfoSerializer(serializers.ModelSerializer):
@@ -48,7 +48,7 @@ class ConversationInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Conversation
         depth = 1
-        fields = ["name", "room_type", "profiles", "created_at", "message_limit", "settings"]
+        fields = ["id","name", "room_type", "profiles", "created_at", "message_limit", "settings"]
 
 class FollowerSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(read_only=True)
@@ -65,16 +65,16 @@ class FollowerInfoSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    sender = ProfileSerializer(read_only=True)
-    conversation = ConversationSerializer(read_only=True)
+    # sender = ProfileSerializer(read_only=True)
+    # conversation = ConversationSerializer(read_only=True)
     class Meta:
         model = models.Message
         fields = "__all__"
 
 
 class MessageInfoSerializer(serializers.ModelSerializer):
-    sender = ProfileSerializer(read_only=True)
-    conversation = ConversationSerializer(read_only=True)
+    # sender = ProfileSerializer(read_only=True)
+    # conversation = ConversationSerializer(read_only=True)
     class Meta:
         model = models.Message
         depth = 1

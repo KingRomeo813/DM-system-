@@ -52,7 +52,12 @@ class Conversation(BaseModel):
 
     def more_than(self):
         return self.profiles.count() > 2
-
+    
+    def check_limit(self):
+        if not self.message_limit >= 1:
+            return True
+        raise ValidationError("Message limit reached for this conversation.")
+        
     def clean(self):
         if self.room_type == 'private' and self.pk and self.more_than():
             raise ValidationError("A private conversation cannot have more than two participants.")
@@ -74,15 +79,17 @@ class Message(BaseModel):
     def __str__(self):
         return f"Message from {self.sender} in Room {self.conversation.id}"
 
-    def receiver(self):
 
+    def receiver(self):
+        if not self.conversation_id:
+            raise ValidationError("Message must have a conversation to determine the receiver.")
+        
         participants = self.conversation.profiles.all()
         if len(participants) != 2:
             raise ValidationError("This message can only be sent in a conversation with two participants.")
+        
         receiver = participants.exclude(id=self.sender.id).first()
-        if receiver:
-            return receiver
-        return None
+        return receiver or None
 
 
     def can_send(self):
@@ -91,6 +98,8 @@ class Message(BaseModel):
         if receiver:
             request = self.sender.sent_requests.filter(receiver=receiver).first()
             if request and request.status == 'accepted':
+                return True
+            if request and self.conversation.check_limit():
                 return True
             if not request:
                 raise ValidationError("No request found between the users.")
@@ -105,9 +114,6 @@ class Message(BaseModel):
 
     def save(self, *args, **kwargs):
         self.clean()
-        
-        if self.conversation.message_limit >= 1:
-            raise ValidationError("Message limit reached for this conversation.")
         
         super().save(*args, **kwargs)
 

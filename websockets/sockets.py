@@ -9,8 +9,8 @@ from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from channels.layers import get_channel_layer
 
 from channels.db import database_sync_to_async
-# from apps.models import User
-from apps.models import Message
+from apps.models import Profile, Message
+from apps.repositories import ProfileRepo
 
 log = logging.getLogger("app")
 
@@ -23,23 +23,22 @@ class SocketConsumer(AsyncWebsocketConsumer):
         return token
 
     async def update_status(self, status):
-        self.user.status = status
+        self.user.is_online = status
         self.user.last_seen = datetime.datetime.now() if not status else None
         await database_sync_to_async(self.user.save)()
             
     @database_sync_to_async
-    def get_user_from_token(self, user_id):
-        # user = User.objects.get(id=user_id)
+    def get_user_by_id(self, id: str):
+        user = Profile.objects.get(id=id)
         user = None
         return user
 
-    async def authenticate_user(self, token):
-        print(self.token_parser())
-        token = await self.token_parser()
-        decoded = AccessToken(token)
-        user = await self.get_user_from_token(decoded["user_id"])
-        self.scope["user"] = user
-        return user
+    @database_sync_to_async
+    def authenticate_user(self, token):
+        repo = ProfileRepo()
+        self.user = repo.verify_user_by_token(token)
+        self.scope["user"] = self.user
+        return self.user
 
     @database_sync_to_async
     def chat_messages_seen(self, data):
@@ -50,21 +49,20 @@ class SocketConsumer(AsyncWebsocketConsumer):
         token = await self.token_parser()
 
         try:
-            self.user = await self.authenticate_user(token)
+            await self.authenticate_user(token)
         except Exception as e:
+            log.error(str(e))
             await self.close()
             return
 
 
         self.chat_group = f"chat_{str(self.user.id)}"
         self.room_group_name = f"chat_{str(self.user.id)}"
-
         self.notification_group = f"notification_{str(self.user.id)}"
         self.activity_group = "activity"
         await self.channel_layer.group_add(self.chat_group, self.channel_name)
         await self.channel_layer.group_add(self.notification_group, self.channel_name)
         await self.channel_layer.group_add(self.activity_group, self.channel_name)
-
         await self.update_status(True)
     async def receive(self, text_data=None, bytes_data=None):
         if text_data:
@@ -105,7 +103,7 @@ class SocketConsumer(AsyncWebsocketConsumer):
         )
 
     async def disconnect(self, close_code):
-        await self.update_status(False)
+        # await self.update_status(False)
         print("OKAy")
         await self.channel_layer.group_send(
             'activity',
