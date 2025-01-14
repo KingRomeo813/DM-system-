@@ -205,7 +205,7 @@ LOGGING = {
         'file': {
             'level': 'NOTSET',  # Set to DEBUG for more detailed logs
             'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'modrek.log'),
+            'filename': os.path.join(LOG_DIR, 'oaysis.log'),
             'formatter': 'verbose',
         },
         'console': {
