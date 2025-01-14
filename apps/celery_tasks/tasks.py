@@ -1,3 +1,4 @@
+import uuid
 import json
 import time
 import logging
@@ -12,25 +13,36 @@ from services import UserService
 
 log = logging.getLogger(__file__)
 
-def default_converter(self, o):
+def default_converter(o):
     if isinstance(o, datetime.datetime):
         return o.isoformat()
+    if isinstance(o, uuid.UUID):  # Convert UUID to string
+        return str(o)
+    raise TypeError(f"Object of type {type(o).__name__} is not JSON serializable")
 
 @shared_task
 def send_messages(message_id: str, user_id: str):
     try:
-        message = Message.objects.get(id=str(message_id))
-        user = Profile.objects.get(id=str(user_id))
+        print("Entering 0")
+        try:
+            message = Message.objects.get(id=str(message_id))
+        except Exception as e:
+            log.error(str(e))
+            raise
+        try:
+            user = Profile.objects.get(id=str(user_id))
+        except Exception as e:
+            log.error(str(e))
+            raise
 
         serializer = MessageSerializer(message)
         serialized_data = json.dumps(serializer.data, default=default_converter)
-
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
             f'chat_{user.id}',
             {
-                'type': 'chat_message',
-                'message': serialized_data,
+                'type': 'parser',
+                'message': json.loads(serialized_data),
             }
         )
         log.info(f"Message sent to chat group: chat_{user.id}")
