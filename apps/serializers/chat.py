@@ -65,16 +65,16 @@ class FollowerInfoSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    # sender = ProfileSerializer(read_only=True)
-    # conversation = ConversationSerializer(read_only=True)
+    sender = ProfileSerializer()
+    conversation = ConversationSerializer()
     class Meta:
         model = models.Message
         fields = "__all__"
 
 
 class MessageInfoSerializer(serializers.ModelSerializer):
-    # sender = ProfileSerializer(read_only=True)
-    # conversation = ConversationSerializer(read_only=True)
+    sender = ProfileSerializer()
+    conversation = ConversationSerializer()
     class Meta:
         model = models.Message
         depth = 1
