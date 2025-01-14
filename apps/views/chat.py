@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets, permissions, status, filters
 
+from apps.celery_tasks import send_messages
 from apps.utils import CustomAuthenticated
-
 from apps.models import (Conversation,
                         Follower,
                         Message,
@@ -48,6 +48,19 @@ class MessageViewset(viewsets.ModelViewSet):
             return MessageInfoSerializer
         return MessageSerializer
     
+    def create(self, request, *args, **kwargs):
+
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            try:
+                message = serializer.save()
+                send_messages.delay(message_id=message.id, user_id=message.receiver().id)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+
+        return Response("Message couldn't be sent please try again", status=status.HTTP_400_BAD_REQUEST)
+        
 class ConversationViewset(viewsets.ModelViewSet):
     permission_classes = [CustomAuthenticated]
     http_method_names = ['get', 
@@ -86,13 +99,17 @@ class ConversationViewset(viewsets.ModelViewSet):
             raise ValueError("A private conversation between these two profiles already exists.")
 
         serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
+        if serializer.is_valid(raise_exception=True):
             conversation = serializer.save()
-            for profile in profiles:
-                conversation.settings.get_or_create(profile=profile)
+            try:
+                for profile in profiles:
+                    conversation.settings.get_or_create(profile=profile)
+            except Exception as e:
+                return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response("Conversation Couldn't be create please try again", status=status.HTTP_400_BAD_REQUEST)
         
-        # Return the created conversation data in the response
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
     
 class ConversationSettingsViewset(viewsets.ModelViewSet):
     permission_classes = [CustomAuthenticated]
@@ -223,13 +240,8 @@ class RequestViewset(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
 
-        data = request.data
-        # try:
-        #     receiver = Profile.objects.get(id = data["receiver"])
-        # except Exception as e:
-        #     raise ValueError(str(e))
-
-        serializer = self.get_serializer(data=data)
-        if serializer.is_valid():
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
             serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response("Request Couldn't be sent try again", statut=status.HTTP_400_BAD_REQUEST)
