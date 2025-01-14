@@ -17,10 +17,10 @@ def default_converter(self, o):
         return o.isoformat()
 
 @shared_task
-def send_messages(message_id: int, user_id: int):
+def send_messages(message_id: str, user_id: str):
     try:
-        message = Message.objects.get(id=message_id)
-        user = Profile.objects.get(id=user_id)
+        message = Message.objects.get(id=str(message_id))
+        user = Profile.objects.get(id=str(user_id))
 
         serializer = MessageSerializer(message)
         serialized_data = json.dumps(serializer.data, default=default_converter)
