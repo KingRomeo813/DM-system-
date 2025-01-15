@@ -3,7 +3,7 @@ services:
 
   web0:
     image: chat_engine
-    command: python manage.py runserver 0.0.0.0:8080
+    command: gunicorn project.wsgi:application --bind 0.0.0.0:8000 --workers 4
     build:
       context: .
     restart: unless-stopped
