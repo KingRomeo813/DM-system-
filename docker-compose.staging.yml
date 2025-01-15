@@ -11,8 +11,8 @@ services:
       - .:/app
     ports:
       - "8080:8080"
-    depends_on:
-      - db
+    # depends_on:
+    #   - db
     env_file:
       - ./.env
     networks:
@@ -31,8 +31,8 @@ services:
       - .:/app
     ports:
       - "8081:8081"
-    depends_on:
-      - db
+    # depends_on:
+    #   - db
     env_file:
       - ./.env
     networks:
@@ -62,8 +62,8 @@ services:
       - .:/app
     networks:
       - app-web-net
-    depends_on:
-      - db
+    # depends_on:
+    #   - db
 
   # celery_beat:
   #   image: chat_engine
