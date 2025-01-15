@@ -14,7 +14,7 @@ drf-yasg
 # Websockets
 channels[daphne]
 channels-redis
-
+gunicorn
 dj-database-url
 django-filter
 mailersend
