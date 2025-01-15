@@ -41,14 +41,14 @@ services:
       - 8.8.8.8
       - 8.8.4.4
 
-  db:
-    image: postgres:15
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    env_file:
-      - ./.env
-    networks:
-      - app-web-net
+  # db:
+  #   image: postgres:15
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data/
+  #   env_file:
+  #     - ./.env
+  #   networks:
+  #     - app-web-net
 
   celery: 
     image: chat_engine
@@ -65,20 +65,20 @@ services:
     depends_on:
       - db
 
-  celery_beat:
-    image: chat_engine
-    command: celery -A project beat --loglevel=info
-    restart: unless-stopped
-    env_file:
-      - ./.env
-    depends_on:
-      - redis
-    volumes:
-      - .:/app
-    networks:
-      - app-web-net
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
+  # celery_beat:
+  #   image: chat_engine
+  #   command: celery -A project beat --loglevel=info
+  #   restart: unless-stopped
+  #   env_file:
+  #     - ./.env
+  #   depends_on:
+  #     - redis
+  #   volumes:
+  #     - .:/app
+  #   networks:
+  #     - app-web-net
+  #   environment:
+  #     - CELERY_BROKER_URL=redis://redis:6379/0
 
   redis:
     image: redis:alpine

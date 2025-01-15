@@ -87,10 +87,16 @@ ASGI_APPLICATION = 'project.asgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': dj_database_url.parse(os.environ["DATABASE_URL"])
-}
+# DATABASES = {
+#     'default': dj_database_url.parse(os.environ["DATABASE_URL"])
+# }
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.getenv('SQLITE_DATABASE_PATH', BASE_DIR / 'db.sqlite3'),
+    }
+}
 
 
 # Password validation
