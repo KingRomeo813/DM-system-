@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets, permissions, status, filters
 
+from apps.repositories import ProfileRepo
 from apps.celery_tasks import send_messages
 from apps.utils import CustomAuthenticated
 from apps.models import (Conversation,
@@ -23,6 +24,7 @@ from apps.serializers import (MessageSerializer,
                             FollowerInfoSerializer,
                             RequestSerializer,
                             RequestInfoSerializer)
+
 log = logging.getLogger(__file__)
 
 
@@ -81,7 +83,6 @@ class ConversationViewset(viewsets.ModelViewSet):
     }
     def get_queryset(self):
         user = self.request.user
-        print(type(user))
         return Conversation.objects.filter(
             is_active=True,
             profiles__in=[user]
@@ -93,22 +94,26 @@ class ConversationViewset(viewsets.ModelViewSet):
         return ConversationSerializer
     
     def create(self, request, *args, **kwargs):
-        data = request.data
-        profiles = list(Profile.objects.filter(id__in = data["profiles"]))
-        if Conversation.objects.filter(profiles__in = profiles).exists():
-            raise ValueError("A private conversation between these two profiles already exists.")
+        print("="*500)
+        data = request.data.copy()
+        repo = ProfileRepo(request.token)
+        items = [str(request.user.id)]
+        profiles = items + [str(n.id) for n in repo.profiles_by_ids(ids=data.get("profiles", "")) if n]
+        data["profiles"] = profiles
+        if Conversation.objects.filter(profiles__in = set(profiles)).exists():
+            return Response({"error": "A private conversation between these two profiles already exists."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
 
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            conversation = serializer.save()
-            try:
-                for profile in profiles:
+            serializer = self.get_serializer(data=data)
+            if serializer.is_valid(raise_exception=True):
+                conversation = serializer.save()
+                for profile in conversation.profiles.all():
                     conversation.settings.get_or_create(profile=profile)
-            except Exception as e:
-                return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
-
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response("Conversation Couldn't be create please try again", status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # return Response("Conversation Couldn't be create please try again", status=status.HTTP_400_BAD_REQUEST)
         
     
 class ConversationSettingsViewset(viewsets.ModelViewSet):
@@ -155,29 +160,10 @@ class FollowerViewset(viewsets.ModelViewSet):
                          'patch', 
                          "post"]
     queryset = Follower.objects.filter(is_active=True).order_by("-created_at")
-    search_fields = ['id', 
-                     "follower__id",
-                     "follower__first_name",
-                     "follower__last_name",
-                     "follower__email",
-                     "following__id",
-                     "following__first_name",
-                     "following__last_name",
-                     "following__email",
-                     "is_mutual"
-                     ]
+    search_fields = ['id']
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     filterset_fields = {
         'id': ["exact"], 
-        "follower__id": ["exact"],
-        "follower__first_name": ["exact"],
-        "follower__last_name": ["exact"],
-        "follower__email": ["exact"],
-        "following__id": ["exact"],
-        "following__first_name": ["exact"],
-        "following__last_name": ["exact"],
-        "following__email": ["exact"],
-        "is_mutual": ["exact"]
     }
     def get_queryset(self):
         user = self.request.user
@@ -191,6 +177,20 @@ class FollowerViewset(viewsets.ModelViewSet):
             return FollowerInfoSerializer
         return FollowerSerializer
     
+    def create(self, request, *args, **kwargs):
+
+        data = request.data.copy()
+        repo = ProfileRepo(request.token)
+        data["follower"] = str(request.user.id)
+        data["following"] = str(repo.profiles_by_ids(ids=[data["following"]])[0].id)
+        try:
+            serializer = self.get_serializer(data=data)
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+                print(serializer.data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class RequestViewset(viewsets.ModelViewSet):
     permission_classes = [CustomAuthenticated]
