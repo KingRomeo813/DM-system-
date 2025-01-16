@@ -49,7 +49,8 @@ class CustomAuthenticated(BasePermission):
             repo = ProfileRepo(token=token)
             token = token.split(" ")[1] if "Bearer" in token else token
             profile = repo.verify_user_by_token()
-
+            request.user = profile
+            request.token = token
             if profile:
                     return profile, token
             else:

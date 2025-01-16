@@ -49,11 +49,16 @@ class ConversationSerializer(serializers.ModelSerializer):
     
     def get_requests(self, obj):
         request = self.context.get("request")
-        sent_requests = models.Request.objects.filter(sender=request.user, receiver= obj.receiver())
-        received_requests = models.Request.objects.filter(sender=obj.receiver(), receiver=request.user)
+        if not request or not request.user:
+            return None
+
+        user_profile = request.user
+        other_profiles = obj.profiles.exclude(id=user_profile.id)
+        sent_requests = models.Request.objects.filter(sender=user_profile, receiver__in=other_profiles)
+        received_requests = models.Request.objects.filter(sender__in=other_profiles, receiver=user_profile)
         all_requests = sent_requests | received_requests
-        if request and request.user:
-            return RequestSerializer(all_requests)
+        return RequestSerializer(all_requests, many=True).data
+
     def get_last_message(self, obj):
         if obj.messages.filter(is_active=True).exists():
             return MessageSerializer(
@@ -134,8 +139,8 @@ class FollowerInfoSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    sender = ProfileSerializer()
-    conversation = ConversationSerializer()
+    # sender = ProfileSerializer()
+    # conversation = ConversationSerializer()
     class Meta:
         model = models.Message
         fields = "__all__"
@@ -150,17 +155,14 @@ class MessageInfoSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 class RequestSerializer(serializers.ModelSerializer):
-    sender = ProfileSerializer()
-    receiver = ProfileSerializer()
     class Meta:
-        depth = 1
         model = models.Request
         fields = "__all__"
 
 
 class RequestInfoSerializer(serializers.ModelSerializer):
-    sender = ProfileSerializer(read_only=True)
-    receiver = ProfileSerializer(read_only=True)
+    # sender = ProfileSerializer(read_only=True)
+    # receiver = ProfileSerializer(read_only=True)
     class Meta:
         model = models.Request
         depth = 1

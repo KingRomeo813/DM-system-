@@ -52,8 +52,9 @@ class MessageViewset(viewsets.ModelViewSet):
         return MessageSerializer
     
     def create(self, request, *args, **kwargs):
-
-        serializer = self.get_serializer(data=request.data)
+        data = request.data.copy()
+        data["sender"] = str(request.user.id)
+        serializer = self.get_serializer(data=data)
         if serializer.is_valid(raise_exception=True):
             try:
                 message = serializer.save()
@@ -105,8 +106,9 @@ class ConversationViewset(viewsets.ModelViewSet):
         data = request.data.copy()
         repo = ProfileRepo(request.token)
         items = [str(request.user.id)]
-        profiles = items + [str(n.id) for n in repo.profiles_by_ids(ids=data.get("profiles", "")) if n]
-        data["profiles"] = profiles
+        if data.get("profiles_user_ids", []):
+            profiles = items + [str(n.id) for n in repo.profiles_by_ids(ids=data.get("profiles_user_ids", "")) if n]
+            data["profiles"] = profiles
         if Conversation.objects.filter(profiles__in = set(profiles)).exists():
             return Response({"error": "A private conversation between these two profiles already exists."}, status=status.HTTP_400_BAD_REQUEST)
         try:
@@ -189,7 +191,9 @@ class FollowerViewset(viewsets.ModelViewSet):
         data = request.data.copy()
         repo = ProfileRepo(request.token)
         data["follower"] = str(request.user.id)
-        data["following"] = str(repo.profiles_by_ids(ids=[data["following"]])[0].id)
+        if data.get("following_user_id", None):
+            data["following"] = str(repo.profiles_by_ids(ids=[data["following_user_id"]])[0].id)
+        
         try:
             serializer = self.get_serializer(data=data)
             if serializer.is_valid(raise_exception=True):
@@ -222,15 +226,15 @@ class RequestViewset(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     filterset_fields = {
         'id': ["exact"], 
-        "sender__id": ["exact"],
-        "sender__first_name": ["exact"],
-        "sender__last_name": ["exact"],
-        "sender__email": ["exact"],
-        "receiver__id": ["exact"],
-        "receiver__first_name": ["exact"],
-        "receiver__last_name": ["exact"],
-        "receiver__email": ["exact"],
-        "status": ["exact"],
+        # "sender__id": ["exact"],
+        # "sender__first_name": ["exact"],
+        # "sender__last_name": ["exact"],
+        # "sender__email": ["exact"],
+        # "receiver__id": ["exact"],
+        # "receiver__first_name": ["exact"],
+        # "receiver__last_name": ["exact"],
+        # "receiver__email": ["exact"],
+        # "status": ["exact"],
     }
     def get_queryset(self):
         user = self.request.user
@@ -246,9 +250,18 @@ class RequestViewset(viewsets.ModelViewSet):
         return RequestSerializer
 
     def create(self, request, *args, **kwargs):
-
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response("Request Couldn't be sent try again", statut=status.HTTP_400_BAD_REQUEST)
+        try:
+            data = request.data.copy()
+            data["sender"] = str(request.user.id)
+            repo = ProfileRepo(request.token)
+            if data.get("receiver_user_id", None): 
+                data["receiver"] = str(repo.profiles_by_ids(ids=[data["receiver_user_id"]])[0].id)
+            serializer = self.get_serializer(data=data)
+            if serializer.is_valid(raise_exception=True):
+                print(serializer)
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, statut=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            log.error(str(e))
+            raise
