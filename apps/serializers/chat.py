@@ -9,7 +9,7 @@ from rest_framework import serializers
 
 from .. import models
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -37,18 +37,91 @@ class ConversationSettingsInfoSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 class ConversationSerializer(serializers.ModelSerializer):
-    settings = ConversationSettingsSerializer(read_only=True, many=True)
+    settings = serializers.SerializerMethodField()
+    requests = serializers.SerializerMethodField()
+    last_message = serializers.SerializerMethodField()
+    unread_messages = serializers.SerializerMethodField()
+
+    def get_unread_messages(self, obj):
+        if obj.messages.filter(is_active=True).exists():
+            return obj.messages.count()
+        return 0
+    
+    def get_requests(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user:
+            return None
+
+        user_profile = request.user
+        other_profiles = obj.profiles.exclude(id=user_profile.id)
+        sent_requests = models.Request.objects.filter(sender=user_profile, receiver__in=other_profiles)
+        received_requests = models.Request.objects.filter(sender__in=other_profiles, receiver=user_profile)
+        all_requests = sent_requests | received_requests
+        return RequestSerializer(all_requests, many=True).data
+
+    def get_last_message(self, obj):
+        if obj.messages.filter(is_active=True).exists():
+            return MessageSerializer(
+                obj.messages.filter(is_active=True).order_by("-created_at").first()
+            ).data
+        return []
+    def get_settings(self, obj):
+        request = self.context.get("request")
+        log.info(request.user)
+        if request and request.user:
+            return ConversationSettingsSerializer(
+                obj.settings.exclude(profile=request.user),
+                many=True
+            ).data
+        return ConversationSettingsSerializer(obj.settings, many=True).data
     class Meta:
         model = models.Conversation
-        fields = ["id","name", "room_type", "profiles", "created_at", "message_limit", "settings"]
+        fields = ["id","name", "room_type", "profiles", "created_at", "message_limit", "settings", "requests", "last_message", "unread_messages"]
 
 
 class ConversationInfoSerializer(serializers.ModelSerializer):
-    settings = ConversationSettingsSerializer(read_only=True, many=True)
+    settings = serializers.SerializerMethodField()
+    requests = serializers.SerializerMethodField()
+    last_message = serializers.SerializerMethodField()
+    unread_messages = serializers.SerializerMethodField()
+
+    def get_unread_messages(self, obj):
+        if obj.messages.filter(is_active=True).exists():
+            return obj.messages.count()
+        return 0
+    
+    def get_last_message(self, obj):
+        if obj.messages.filter(is_active=True).exists():
+            return MessageSerializer(
+                obj.messages.filter(is_active=True).order_by("-created_at").first()
+            ).data
+        return []
+    
+    def get_requests(self, obj):
+        request = self.context.get("request")
+        other_profile = obj.profiles.exclude(id=request.user.id).first()
+
+        sent_requests = models.Request.objects.filter(sender = request.user, receiver = other_profile)
+        received_requests = models.Request.objects.filter(sender = other_profile, receiver = request.user)
+        all_requests = sent_requests | received_requests
+        if request and request.user:
+            return RequestSerializer(all_requests, many=True).data
+        
+    def get_settings(self, obj):
+        request = self.context.get("request")
+        log.info(request.user)
+
+        if request and request.user:
+            return ConversationSettingsInfoSerializer(
+                obj.settings.exclude(profile=request.user),  # Filter settings here
+                many=True
+            ).data
+        return ConversationSettingsInfoSerializer(obj.settings, many=True).data
+    
     class Meta:
         model = models.Conversation
         depth = 1
-        fields = ["id","name", "room_type", "profiles", "created_at", "message_limit", "settings"]
+        fields = ["id","name", "room_type", "profiles", "created_at", "message_limit", "settings", "requests", "last_message", "unread_messages"]
 
 class FollowerSerializer(serializers.ModelSerializer):
     class Meta:
@@ -66,8 +139,8 @@ class FollowerInfoSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    sender = ProfileSerializer()
-    conversation = ConversationSerializer()
+    # sender = ProfileSerializer()
+    # conversation = ConversationSerializer()
     class Meta:
         model = models.Message
         fields = "__all__"
@@ -82,17 +155,14 @@ class MessageInfoSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 class RequestSerializer(serializers.ModelSerializer):
-    sender = ProfileSerializer()
-    receiver = ProfileSerializer()
     class Meta:
-        depth = 1
         model = models.Request
         fields = "__all__"
 
 
 class RequestInfoSerializer(serializers.ModelSerializer):
-    sender = ProfileSerializer(read_only=True)
-    receiver = ProfileSerializer(read_only=True)
+    # sender = ProfileSerializer(read_only=True)
+    # receiver = ProfileSerializer(read_only=True)
     class Meta:
         model = models.Request
         depth = 1

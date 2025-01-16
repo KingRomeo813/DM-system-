@@ -171,7 +171,7 @@ class Request(BaseModel):
     )
     class Meta:
         unique_together = ('sender', 'receiver')
-
+    
     def can_send_message(self):
         if self.status == 'pending':
             raise ValidationError("You can't send a message until the recipient accepts your request.")

@@ -144,6 +144,11 @@ CHANNEL_LAYERS = {
 }
 
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'apps.utils.CustomAuthenticated',
+        'rest_framework.authentication.SessionAuthentication',
+
+    ),
     'DEFAULT_PERMISSION_CLASSES': [
         'apps.utils.CustomAuthenticated',
     ],
@@ -208,19 +213,20 @@ LOGGING = {
             'formatter': 'verbose',
         },
         'console': {
+            'level': 'DEBUG',  # Set to DEBUG or INFO to show logs in the terminal
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
-            'level': 'NOTSET',
+            'handlers': ['file', 'console'],  # Add console handler here
+            'level': 'INFO',  # Set the level to capture all logs
             'propagate': False,
         },
         'apps': {
-            'handlers': ['file'],
-            'level': 'NOTSET',
+            'handlers': ['file', 'console'],  # Add console handler here
+            'level': 'INFO',  # Set the level to capture all logs
             'propagate': False,
         },
     },
