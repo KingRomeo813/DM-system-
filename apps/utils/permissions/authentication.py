@@ -7,12 +7,12 @@ log = logging.getLogger(__file__)
 class CustomAuthenticated(BasePermission):
     def has_permission(self, request, view):
         try:
-            repo = ProfileRepo()
             token = request.headers.get("Authorization")
             if not token:
                 return False
+            repo = ProfileRepo(token=token)
             token = token.split(" ")[1] if "Bearer" in token else token
-            profile = repo.verify_user_by_token(token=token)
+            profile = repo.verify_user_by_token()
 
             if profile:
                 request.user = profile

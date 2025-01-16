@@ -1,16 +1,16 @@
 import uuid
 import logging
 import datetime
-from typing import Dict, List, Optional, Any, Set
 from apps.models import Profile
 from services import UserService
+from typing import Dict, List, Optional, Any, Set
 
 log = logging.getLogger(__name__)
 
 class ProfileRepo():
     
-    def __init__(self):
-        self.service = UserService()
+    def __init__(self, token = str):
+        self.service = UserService(auth_token=token)
 
     def get(self, id):
         try:
@@ -19,16 +19,36 @@ class ProfileRepo():
             log.error(str(e))
             raise ValueError("Couldn't found profile with given id")
         
+    def profiles_by_ids(self, ids: List) -> List[Profile]:
 
-    def verify_user_by_token(self, token: str):
+        try:
+            items = []
+            profiles = self.service.get_profiles_by_ids(ids=ids)
+            print(profiles)
+            for profile in profiles:
+                data = {
+                    "first_name": profile["first_name"],
+                    "last_name": profile["last_name"],
+                    "email": profile["email"],
+                    "user_id": profile["id"],
+                    "username": profile["username"],
+                    "online": False,
+                    "last_seen": False,
+                }
+                items.append(self.update_or_create(data=data))
+            return items
+        except Exception as e:
+            log.error(str(e))
+            raise ValueError("Couldn't found profile with given id")
+
+    def verify_user_by_token(self):
         try:
             
-            response = self.service.get_current_user(auth_token=token).json()
+            response = self.service.get_current_user().json()
 
             required_keys = {"id", "first_name", "last_name", "username"}
             if not required_keys.issubset(response):
                 raise ValueError(f"Missing required keys in response: {required_keys - response.keys()}")
-            print(response)
             data = {
                 "user_id": response["id"],
                 "first_name": response["first_name"],

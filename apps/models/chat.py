@@ -32,6 +32,7 @@ class Follower(BaseModel):
         return self.mutual_friends().exists()
     
     def save(self, *args, **kwargs):
+        self.is_mutual_friend()
         super().save(*args, **kwargs)
 
 class Conversation(BaseModel):
@@ -59,13 +60,11 @@ class Conversation(BaseModel):
         raise ValidationError("Message limit reached for this conversation.")
         
     def clean(self):
-        if self.room_type == 'private' and self.pk and self.more_than():
+        if self.room_type == 'private' and not self.pk and self.more_than():
             raise ValidationError("A private conversation cannot have more than two participants.")
 
     def save(self, *args, **kwargs):
-        if self.room_type == 'private' and self.more_than():
-            raise ValueError("A private conversation cannot have more than two participants.")
-
+        self.clean()
         super().save(*args, **kwargs)
         for profile in self.profiles.all():
             self.settings.get_or_create(profile=profile)

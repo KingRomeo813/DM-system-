@@ -51,13 +51,14 @@ class ConversationInfoSerializer(serializers.ModelSerializer):
         fields = ["id","name", "room_type", "profiles", "created_at", "message_limit", "settings"]
 
 class FollowerSerializer(serializers.ModelSerializer):
-    profile = ProfileSerializer(read_only=True)
     class Meta:
         model = models.Follower
         fields = "__all__"
 
 
 class FollowerInfoSerializer(serializers.ModelSerializer):
+    follower = ProfileInfoSerializer()
+    following = ProfileInfoSerializer()
     class Meta:
         model = models.Follower
         depth = 1
