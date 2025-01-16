@@ -39,7 +39,14 @@ class ConversationSettingsInfoSerializer(serializers.ModelSerializer):
 class ConversationSerializer(serializers.ModelSerializer):
     settings = serializers.SerializerMethodField()
     requests = serializers.SerializerMethodField()
+    last_message = serializers.SerializerMethodField()
+    unread_messages = serializers.SerializerMethodField()
 
+    def get_unread_messages(self, obj):
+        if obj.messages.filter(is_active=True).exists():
+            return obj.messages.count()
+        return 0
+    
     def get_requests(self, obj):
         request = self.context.get("request")
         sent_requests = models.Request.objects.filter(sender=request.user, receiver= obj.receiver())
@@ -47,7 +54,12 @@ class ConversationSerializer(serializers.ModelSerializer):
         all_requests = sent_requests | received_requests
         if request and request.user:
             return RequestSerializer(all_requests)
-        
+    def get_last_message(self, obj):
+        if obj.messages.filter(is_active=True).exists():
+            return MessageSerializer(
+                obj.messages.filter(is_active=True).order_by("-created_at").first()
+            ).data
+        return []
     def get_settings(self, obj):
         request = self.context.get("request")
         log.info(request.user)
@@ -59,12 +71,26 @@ class ConversationSerializer(serializers.ModelSerializer):
         return ConversationSettingsSerializer(obj.settings, many=True).data
     class Meta:
         model = models.Conversation
-        fields = ["id","name", "room_type", "profiles", "created_at", "message_limit", "settings", "requests"]
+        fields = ["id","name", "room_type", "profiles", "created_at", "message_limit", "settings", "requests", "last_message", "unread_messages"]
 
 
 class ConversationInfoSerializer(serializers.ModelSerializer):
     settings = serializers.SerializerMethodField()
     requests = serializers.SerializerMethodField()
+    last_message = serializers.SerializerMethodField()
+    unread_messages = serializers.SerializerMethodField()
+
+    def get_unread_messages(self, obj):
+        if obj.messages.filter(is_active=True).exists():
+            return obj.messages.count()
+        return 0
+    
+    def get_last_message(self, obj):
+        if obj.messages.filter(is_active=True).exists():
+            return MessageSerializer(
+                obj.messages.filter(is_active=True).order_by("-created_at").first()
+            ).data
+        return []
     
     def get_requests(self, obj):
         request = self.context.get("request")
@@ -90,7 +116,7 @@ class ConversationInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Conversation
         depth = 1
-        fields = ["id","name", "room_type", "profiles", "created_at", "message_limit", "settings", "requests"]
+        fields = ["id","name", "room_type", "profiles", "created_at", "message_limit", "settings", "requests", "last_message", "unread_messages"]
 
 class FollowerSerializer(serializers.ModelSerializer):
     class Meta:
