@@ -25,6 +25,7 @@ from apps.serializers import (MessageSerializer,
                             RequestSerializer,
                             RequestInfoSerializer)
 
+from apps.filters import ConversationFilter
 log = logging.getLogger(__file__)
 
 
@@ -78,9 +79,16 @@ class ConversationViewset(viewsets.ModelViewSet):
                      "updated_at", 
                      "message_limit"]
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
-    filterset_fields = {
-        'id': ['exact'],
-    }
+    # filterset_fields = {
+    #     'id': ['exact'],
+    #     'name': ['exact'],
+    #     "profiles": ['exact'],
+    #     "message_limit": ['exact'],
+    #     'created_at': ['exact'],
+    #     'room_type': ['exact'],
+    # }
+    filterset_class = ConversationFilter
+
     def get_queryset(self):
         user = self.request.user
         return Conversation.objects.filter(
@@ -94,7 +102,6 @@ class ConversationViewset(viewsets.ModelViewSet):
         return ConversationSerializer
     
     def create(self, request, *args, **kwargs):
-        print("="*500)
         data = request.data.copy()
         repo = ProfileRepo(request.token)
         items = [str(request.user.id)]
