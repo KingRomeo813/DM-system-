@@ -104,12 +104,21 @@ class ConversationViewset(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
+        user = request.user
         repo = ProfileRepo(request.token)
         items = [str(request.user.id)]
-        if data.get("profiles_user_ids", []):
-            profiles = items + [str(n.id) for n in repo.profiles_by_ids(ids=data.get("profiles_user_ids", "")) if n]
-            data["profiles"] = profiles
-        if Conversation.objects.filter(profiles__in = set(profiles)).exists():
+        
+        try:
+            if data.get("profiles_user_ids", []):
+                op_profiles = repo.profiles_by_ids(ids=data.get("profiles_user_ids", ""))
+
+                profiles = items + [str(i.id) for i in op_profiles]
+                data["profiles"] = profiles
+        except Exception as e:
+            log.error(str(e))
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        if Conversation.objects.filter(profiles=user).filter(profiles=op_profiles[0]).exists():
             return Response({"error": "A private conversation between these two profiles already exists."}, status=status.HTTP_400_BAD_REQUEST)
         try:
 
