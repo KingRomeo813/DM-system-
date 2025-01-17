@@ -96,12 +96,18 @@ class Message(BaseModel):
         
         if receiver:
             request = self.sender.sent_requests.filter(receiver=receiver).first()
-            if request and request.status == 'accepted':
+            received = self.sender.received_requests.filter(sender=receiver).first()
+
+            if not request and not received:
+                raise ValidationError("No request found between the users.")
+
+            if received and received.status != "accepted":
+                raise ValidationError("You haven't accept the request yet.")
+            if (request and request.status == 'accepted') or (received and received.status == "accepted"):
                 return True
             if request and self.conversation.check_limit():
                 return True
-            if not request:
-                raise ValidationError("No request found between the users.")
+
             if request.status != 'accepted':
                 raise ValidationError("You can't send a message until the recipient accepts your request.")
         

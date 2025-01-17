@@ -20,3 +20,5 @@ django-filter
 mailersend
 Faker
 debugpy
+
+google-generativeai
