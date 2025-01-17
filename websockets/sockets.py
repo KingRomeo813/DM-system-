@@ -81,7 +81,7 @@ class SocketConsumer(AsyncWebsocketConsumer):
         }))
         
     async def seen(self, event):
-        print("=="*500)
+
         await self.send(text_data=json.dumps(
             event
         ))
