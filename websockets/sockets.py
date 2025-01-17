@@ -35,8 +35,8 @@ class SocketConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def authenticate_user(self, token):
-        repo = ProfileRepo()
-        self.user = repo.verify_user_by_token(token)
+        repo = ProfileRepo(token)
+        self.user = repo.verify_user_by_token()
         self.scope["user"] = self.user
         return self.user
 
@@ -81,15 +81,26 @@ class SocketConsumer(AsyncWebsocketConsumer):
         }))
         
     async def seen(self, event):
+        print("=="*500)
         await self.send(text_data=json.dumps(
             event
         ))
-    
-    async def typing(self, event):
+    async def receive_typing(self, event): 
+
         await self.send(text_data=json.dumps({
             "type": "typing",
             'message': event['message']
         }))
+        
+    async def typing(self, event):
+        op_id = event["op_id"]
+        await self.channel_layer.group_send(
+            f'chat_{op_id}',
+            {
+                "type": "receive_typing",
+                "message": event['message'],
+            }
+        )
     
     async def messages_seen(self, event):
         self.chat_messages_seen(event)
