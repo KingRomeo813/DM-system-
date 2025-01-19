@@ -138,9 +138,10 @@ class ConversationSettingsViewset(viewsets.ModelViewSet):
     permission_classes = [CustomAuthenticated]
     http_method_names = ['get', 
                          'put', 
-                         'delete', 
-                         'patch', 
-                         "post"]
+                        #  'delete', 
+                         'patch' 
+                        #  "post"
+                         ]
     queryset = ConversationSettings.objects.filter(is_active=True).order_by("-created_at")
     search_fields = ['id', 
                      "conversation__id",
