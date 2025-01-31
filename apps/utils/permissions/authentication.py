@@ -51,6 +51,7 @@ class CustomAuthenticated(BasePermission):
             profile = repo.verify_user_by_token()
             request.user = profile
             request.token = token
+            print(request.user)
             if profile:
                     return profile, token
             else:

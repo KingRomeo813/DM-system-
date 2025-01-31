@@ -43,6 +43,7 @@ class Conversation(BaseModel):
     name = models.CharField(max_length=255, blank=True, null=True)
     room_type = models.CharField(max_length=10, choices=ROOM_TYPE_CHOICES, default="private")
     profiles = models.ManyToManyField(Profile, related_name="conversations")
+    approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     message_limit = models.IntegerField(default=0)
     def __str__(self):
@@ -91,27 +92,11 @@ class Message(BaseModel):
         return receiver or None
 
 
-    def can_send(self):
-        receiver = self.receiver()
-        
-        if receiver:
-            request = self.sender.sent_requests.filter(receiver=receiver).first()
-            received = self.sender.received_requests.filter(sender=receiver).first()
-
-            if not request and not received:
-                raise ValidationError("No request found between the users.")
-
-            if received and received.status != "accepted":
-                raise ValidationError("You haven't accept the request yet.")
-            if (request and request.status == 'accepted') or (received and received.status == "accepted"):
-                return True
-            if request and self.conversation.check_limit():
-                return True
-
-            if request.status != 'accepted':
-                raise ValidationError("You can't send a message until the recipient accepts your request.")
-        
+    def can_send(self) -> bool:
+        if self.conversation.approved or self.conversation.message_limit == 0:
+            return True
         return False
+    
         
     def clean(self):
         if not self.can_send():

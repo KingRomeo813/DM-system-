@@ -76,7 +76,7 @@ class ConversationSerializer(serializers.ModelSerializer):
         return ConversationSettingsSerializer(obj.settings, many=True).data
     class Meta:
         model = models.Conversation
-        fields = ["id","name", "room_type", "profiles", "created_at", "message_limit", "settings", "requests", "last_message", "unread_messages"]
+        fields = ["id","name", "approved", "room_type", "profiles", "created_at", "message_limit", "settings", "requests", "last_message", "unread_messages"]
 
 
 class ConversationInfoSerializer(serializers.ModelSerializer):
@@ -121,7 +121,7 @@ class ConversationInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Conversation
         depth = 1
-        fields = ["id","name", "room_type", "profiles", "created_at", "message_limit", "settings", "requests", "last_message", "unread_messages"]
+        fields = ["id","name", "approved", "room_type", "profiles", "created_at", "message_limit", "settings", "requests", "last_message", "unread_messages"]
 
 class FollowerSerializer(serializers.ModelSerializer):
     class Meta:
