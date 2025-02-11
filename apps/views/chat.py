@@ -2,7 +2,7 @@ import logging
 from django.db.models import Q
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status, viewsets, permissions, status, filters
+from rest_framework import status, viewsets, permissions, status, filters, generics
 
 from apps.repositories import ProfileRepo
 from apps.celery_tasks import send_messages
@@ -133,7 +133,38 @@ class ConversationViewset(viewsets.ModelViewSet):
 
         # return Response("Conversation Couldn't be create please try again", status=status.HTTP_400_BAD_REQUEST)
         
-    
+
+class ConversationUserViewSet(generics.GenericAPIView):
+    permission_classes = [CustomAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        if "user_id" not in kwargs:
+            return Response({"error": "UserId is required"}, status=status.HTTP_400_BAD_REQUEST)
+        print(kwargs)
+        repo = ProfileRepo(request.token)
+        try:
+            op_user = repo.profiles_by_ids(ids=[int(kwargs.get("user_id"))])
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        user2 = op_user[0]
+
+        conv = Conversation.objects.filter(profiles=user).filter(profiles=user2)
+        if conv.exists():
+            conversation = conv.first()
+        else:
+            conversation = Conversation.objects.create(
+                name=f"{user.first_name} - {user2.first_name}",
+                room_type=Conversation.PRIVATE,
+            )
+            conversation.profiles.add(user)
+            conversation.profiles.add(user2)
+            conversation.save()
+        serializer = ConversationSerializer(conversation)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        
 class ConversationSettingsViewset(viewsets.ModelViewSet):
     permission_classes = [CustomAuthenticated]
     http_method_names = ['get', 

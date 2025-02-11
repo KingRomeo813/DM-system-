@@ -36,9 +36,11 @@ class Follower(BaseModel):
         super().save(*args, **kwargs)
 
 class Conversation(BaseModel):
+    PRIVATE = 'private'
+    GROUP = 'group'
     ROOM_TYPE_CHOICES = [
-        ('private', 'Private'),
-        ('group', 'Group'),
+        (PRIVATE, 'Private'),
+        (GROUP, 'Group'),
     ]
     name = models.CharField(max_length=255, blank=True, null=True)
     room_type = models.CharField(max_length=10, choices=ROOM_TYPE_CHOICES, default="private")

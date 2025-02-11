@@ -67,7 +67,6 @@ class ConversationSerializer(serializers.ModelSerializer):
         return []
     def get_settings(self, obj):
         request = self.context.get("request")
-        log.info(request.user)
         if request and request.user:
             return ConversationSettingsSerializer(
                 obj.settings.exclude(profile=request.user),
@@ -109,7 +108,6 @@ class ConversationInfoSerializer(serializers.ModelSerializer):
         
     def get_settings(self, obj):
         request = self.context.get("request")
-        log.info(request.user)
 
         if request and request.user:
             return ConversationSettingsInfoSerializer(
