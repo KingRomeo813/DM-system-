@@ -141,7 +141,6 @@ class ConversationUserViewSet(generics.GenericAPIView):
         user = request.user
         if "user_id" not in kwargs:
             return Response({"error": "UserId is required"}, status=status.HTTP_400_BAD_REQUEST)
-        print(kwargs)
         repo = ProfileRepo(request.token)
         try:
             op_user = repo.profiles_by_ids(ids=[int(kwargs.get("user_id"))])
