@@ -74,6 +74,7 @@ class Conversation(BaseModel):
 
 class Message(BaseModel):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")
+    parent = models.ForeignKey("self", on_delete=models.SET_NULL, related_name="replies", null=True, blank=True)
     sender = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="messages")
     content = models.TextField(blank=True, null=True)
     is_read = models.BooleanField(default=False)
