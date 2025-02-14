@@ -74,6 +74,7 @@ class Conversation(BaseModel):
 
 class Message(BaseModel):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")
+    forward = models.ManyToManyField(Conversation, null=True, blank=True, related_name="forward_messages")
     parent = models.ForeignKey("self", on_delete=models.SET_NULL, related_name="replies", null=True, blank=True)
     sender = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="messages")
     content = models.TextField(blank=True, null=True)
@@ -94,7 +95,10 @@ class Message(BaseModel):
         receiver = participants.exclude(id=self.sender.id).first()
         return receiver or None
 
-
+    def forward_receiver(self):
+        forward_convsersations = self.forward.exclude(id = self.conversation.id)
+        return [con.profiles.exclude(id=self.sender.id).first() for con in forward_convsersations if con]
+        
     def can_send(self) -> bool:
         if self.conversation.approved or self.conversation.message_limit == 0:
             return True

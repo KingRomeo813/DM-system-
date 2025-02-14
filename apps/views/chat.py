@@ -56,13 +56,21 @@ class MessageViewset(viewsets.ModelViewSet):
         data["sender"] = str(request.user.id)
         serializer = self.get_serializer(data=data)
         if serializer.is_valid(raise_exception=True):
+            # try:
+            #     message = serializer.save()
+            #     send_messages.delay(message_id=message.id, user_id=message.receiver().id)
+            #     if message.forward.exists():
+            #         for profile in message.forward_receiver():
+            #             send_messages.delay(message_id=message.id, user_id=profile.id)
+
+            #     return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # except Exception as e:
+            #     return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
             try:
-                message = serializer.save()
-                send_messages.delay(message_id=message.id, user_id=message.receiver().id)
+                serializer.save()
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             except Exception as e:
                 return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
-
         return Response("Message couldn't be sent please try again", status=status.HTTP_400_BAD_REQUEST)
         
 class ConversationViewset(viewsets.ModelViewSet):
@@ -156,6 +164,7 @@ class ConversationUserViewSet(generics.GenericAPIView):
             conversation = Conversation.objects.create(
                 name=f"{user.first_name} - {user2.first_name}",
                 room_type=Conversation.PRIVATE,
+                approved=False
             )
             conversation.profiles.add(user)
             conversation.profiles.add(user2)
