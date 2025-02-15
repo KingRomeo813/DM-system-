@@ -1,6 +1,8 @@
 import logging
 from django.db.models import Q
+
 from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets, permissions, status, filters, generics
 
@@ -65,6 +67,46 @@ class MessageViewset(viewsets.ModelViewSet):
 
         return Response("Message couldn't be sent please try again", status=status.HTTP_400_BAD_REQUEST)
         
+class MessageForwardViewSet(viewsets.ModelViewSet):
+
+    permission_classes = [CustomAuthenticated]
+    http_method_names = ["post"]
+    queryset = Message.objects.filter(is_active=True).order_by("-created_at")
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    filterset_fields = {
+        'id': ['exact'],
+        'conversation__id': ['exact'],
+    }
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        conversations = data.get('conversations', None)
+
+        if not conversations:
+            return Response("No conversations provided", status=status.HTTP_400_BAD_REQUEST)
+        message_id = data.get("message", None)
+
+        message_ids = data.get("messages", None)
+        if not message_ids:
+            return Response("Message not found", status=status.HTTP_404_NOT_FOUND)
+        
+        errors = []
+        for conversation in Conversation.objects.filter(id__in = conversations):
+            for message in Message.objects.filter(id__in = message_ids):
+                try:
+                    new_message = Message.objects.create(
+                        **message.get_content(),
+                        sender=request.user,
+                        conversation=conversation, 
+                        forwarded_from=message,
+                        is_forwarded=True
+                    )
+                    send_messages.delay(message_id=new_message.id, user_id=new_message.receiver().id)
+                except Exception as e:
+                    errors.append(str(e) + f" {conversation.id}")
+
+        return Response({"success":"Message Forwarded Succesfully",
+                         "errors": errors}, status=status.HTTP_201_CREATED)
+
 class ConversationViewset(viewsets.ModelViewSet):
     permission_classes = [CustomAuthenticated]
     http_method_names = ['get', 
@@ -304,4 +346,4 @@ class RequestViewset(viewsets.ModelViewSet):
             return Response(serializer.errors, statut=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             log.error(str(e))
-            raise
+            raise    

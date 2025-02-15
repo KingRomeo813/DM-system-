@@ -2,7 +2,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-
+from typing import List, Dict, Any, Optional, DefaultDict, OrderedDict
 from . import BaseModel
 
 
@@ -78,11 +78,23 @@ class Message(BaseModel):
     sender = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="messages")
     content = models.TextField(blank=True, null=True)
     is_read = models.BooleanField(default=False)
+    forwarded_from = models.ForeignKey("self", on_delete=models.SET_NULL, related_name="forwards", null=True, blank=True)
+    is_forwarded = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Message from {self.sender} in Room {self.conversation.id}"
 
+    def get_content(self) -> Dict[str, str]:
+        """
+            args:
+                self
+            Returns:
+                Dict[str, str]: {content, }.
+        """
+        return {
+            "content": self.content,
 
+        }
     def receiver(self):
         if not self.conversation_id:
             raise ValidationError("Message must have a conversation to determine the receiver.")
