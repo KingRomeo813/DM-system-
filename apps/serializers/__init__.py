@@ -8,5 +8,6 @@ from .chat import (
     FollowerSerializer,
     FollowerInfoSerializer,
     RequestSerializer,
-    RequestInfoSerializer
+    RequestInfoSerializer,
+    AttachmentSerializer,
 )

@@ -1,10 +1,11 @@
+import os
 import uuid
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from typing import List, Dict, Any, Optional, DefaultDict, OrderedDict
 from . import BaseModel
-
+from apps.media_storage import MediaStorage
 
 class Profile(BaseModel):
     user_id = models.CharField(max_length=255)
@@ -80,7 +81,7 @@ class Message(BaseModel):
     is_read = models.BooleanField(default=False)
     forwarded_from = models.ForeignKey("self", on_delete=models.SET_NULL, related_name="forwards", null=True, blank=True)
     is_forwarded = models.BooleanField(default=False)
-
+    file = models.ManyToManyField("apps.Attachments", related_name="messages")
     def __str__(self):
         return f"Message from {self.sender} in Room {self.conversation.id}"
 
@@ -184,8 +185,10 @@ class Request(BaseModel):
         return True
 
 class Attachments(BaseModel):
-    message = models.ForeignKey("apps.Message", on_delete=models.CASCADE, related_name="attachments")
-    file = models.FileField(upload_to='uploads/')  # Default upload directory
+    file = models.FileField(storage=MediaStorage(), upload_to='chat_media/')
+    original_name = models.CharField(max_length=255, blank=True, null=True)  
+    file_type = models.CharField(max_length=50, blank=True, null=True)
+    file_size = models.PositiveIntegerField(blank=True, null=True)  
 
     def upload_to_dynamic(self, field_name, filename):
         """Generate a dynamic upload path using the specified field name."""
@@ -196,4 +199,8 @@ class Attachments(BaseModel):
         if self.file:
             field_name = kwargs.pop('field_name', 'attachments')  # Default to 'attachments'
             self.file.name = self.upload_to_dynamic(field_name, self.file.name)  # Set the file name dynamically
+
+            self.original_name = self.file.name  # Store original file name
+            self.file_type = os.path.splitext(self.file.name)[1]  # Extract file extension
+            self.file_size = self.file.size
         super().save(*args, **kwargs)

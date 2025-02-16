@@ -165,3 +165,26 @@ class RequestInfoSerializer(serializers.ModelSerializer):
         model = models.Request
         depth = 1
         fields = "__all__"
+
+
+class AttachmentSerializer(serializers.ModelSerializer):
+    field_name = serializers.CharField(write_only=True, required=False, default='Attachment')  
+
+    class Meta:
+        model = models.Attachments
+        fields = [
+                'id',
+                'file', 
+                'field_name', 
+                "original_name",
+                "file_type",
+                "file_size"
+                ]  
+    def create(self, validated_data):
+        field_name = validated_data.pop('field_name', None)
+
+        attachment = models.Attachments(**validated_data)
+
+        attachment.save(field_name=field_name)
+
+        return attachment
