@@ -25,6 +25,7 @@ from apps.serializers import (MessageSerializer,
                             FollowerSerializer,
                             FollowerInfoSerializer,
                             RequestSerializer,
+                            AttachmentSerializer,
                             RequestInfoSerializer)
 
 from apps.filters import ConversationFilter
@@ -347,3 +348,20 @@ class RequestViewset(viewsets.ModelViewSet):
         except Exception as e:
             log.error(str(e))
             raise    
+
+
+class AttachmentViewSet(viewsets.ModelViewSet):
+    queryset = Attachments.objects.all()
+    serializer_class = AttachmentSerializer
+    http_method_names = ['post']  # Limit to POST for file upload only
+
+    def create(self, request, *args, **kwargs):
+        # Create the serializer instance with the request data
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)  # Validate the data
+
+        # Save the instance using the validated data
+        self.perform_create(serializer)
+
+        # Respond with the serialized data
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

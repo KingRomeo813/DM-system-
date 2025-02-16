@@ -6,6 +6,7 @@ from .views import (MessageViewset,
                     ConversationUserViewSet,
                     FollowerViewset,
                     MessageForwardViewSet,
+                    AttachmentViewSet,
                     RequestViewset)
 
 router = DefaultRouter()
@@ -15,6 +16,7 @@ router.register("conversation", ConversationViewset, "conversation")
 router.register("conversation-settings", ConversationSettingsViewset, "conversation-settings")
 router.register("follow", FollowerViewset, "follow")
 router.register("request", RequestViewset, "request")
+router.register(r'upload-attachment', AttachmentViewSet, basename='upload_attachment')
 
 urlpatterns = [
     path('', include(router.urls)),
