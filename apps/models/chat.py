@@ -81,7 +81,7 @@ class Message(BaseModel):
     is_read = models.BooleanField(default=False)
     forwarded_from = models.ForeignKey("self", on_delete=models.SET_NULL, related_name="forwards", null=True, blank=True)
     is_forwarded = models.BooleanField(default=False)
-    file = models.ManyToManyField("apps.Attachments", related_name="messages")
+    file = models.ManyToManyField("apps.Attachments", related_name="messages", null=True, blank=True)
     def __str__(self):
         return f"Message from {self.sender} in Room {self.conversation.id}"
 
