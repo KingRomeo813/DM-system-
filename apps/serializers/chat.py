@@ -13,6 +13,43 @@ from .. import models
 log = logging.getLogger(__name__)
 
 
+class AttachmentSerializer(serializers.ModelSerializer):
+    field_name = serializers.CharField(write_only=True, required=False, default='Attachment')  
+
+    class Meta:
+        model = models.Attachments
+        fields = [
+                'id',
+                'file', 
+                'field_name', 
+                "original_name",
+                "file_type",
+                "file_size"
+                ]  
+    def create(self, validated_data):
+        field_name = validated_data.pop('field_name', None)
+
+        attachment = models.Attachments(**validated_data)
+
+        attachment.save(field_name=field_name)
+
+        return attachment
+    
+class AttachmentInfoSerializer(serializers.ModelSerializer):
+    field_name = serializers.CharField(write_only=True, required=False, default='Attachment')  
+
+    class Meta:
+        model = models.Attachments
+        fields = [
+                'id',
+                'file', 
+                'field_name', 
+                "original_name",
+                "file_type",
+                "file_size"
+                ]  
+        depth = 1
+
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Profile
@@ -77,7 +114,20 @@ class ConversationSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Conversation
         fields = ["id","name", "approved", "room_type", "profiles", "created_at", "message_limit", "settings", "requests", "last_message", "unread_messages"]
+class MessageInfoForLastMessageSerializer(serializers.ModelSerializer):
+    sender = ProfileSerializer()
+    conversation = ConversationSerializer()
+    file = AttachmentInfoSerializer(many=True)
+    reaction_summary = serializers.SerializerMethodField()
+    def get_reaction_summary(self, obj):
+        """Counts reactions per message and returns the list"""
 
+        reactions = obj.message_reaction.values("reaction__reaction").annotate(count=Count("id")).order_by("-count")
+        return [{"reaction": r["reaction__reaction"], "count": r["count"]} for r in reactions]
+    class Meta:
+        model = models.Message
+        depth = 1
+        fields = "__all__"
 
 class ConversationInfoSerializer(serializers.ModelSerializer):
     settings = serializers.SerializerMethodField()
@@ -92,7 +142,7 @@ class ConversationInfoSerializer(serializers.ModelSerializer):
     
     def get_last_message(self, obj):
         if obj.messages.filter(is_active=True).exists():
-            return MessageSerializer(
+            return MessageInfoForLastMessageSerializer(
                 obj.messages.filter(is_active=True).order_by("-created_at").first()
             ).data
         return []
@@ -155,7 +205,7 @@ class MessageSerializer(serializers.ModelSerializer):
 class MessageInfoSerializer(serializers.ModelSerializer):
     sender = ProfileSerializer()
     conversation = ConversationSerializer()
-
+    file = AttachmentInfoSerializer(many=True)
     reaction_summary = serializers.SerializerMethodField()
     def get_reaction_summary(self, obj):
         """Counts reactions per message and returns the list"""
@@ -211,26 +261,3 @@ class RequestInfoSerializer(serializers.ModelSerializer):
         model = models.Request
         depth = 1
         fields = "__all__"
-
-
-class AttachmentSerializer(serializers.ModelSerializer):
-    field_name = serializers.CharField(write_only=True, required=False, default='Attachment')  
-
-    class Meta:
-        model = models.Attachments
-        fields = [
-                'id',
-                'file', 
-                'field_name', 
-                "original_name",
-                "file_type",
-                "file_size"
-                ]  
-    def create(self, validated_data):
-        field_name = validated_data.pop('field_name', None)
-
-        attachment = models.Attachments(**validated_data)
-
-        attachment.save(field_name=field_name)
-
-        return attachment
