@@ -9,7 +9,7 @@ from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from channels.layers import get_channel_layer
 
 from channels.db import database_sync_to_async
-from apps.models import Profile, Message
+from apps.models import Profile, Message, Conversation
 from apps.repositories import ProfileRepo
 
 log = logging.getLogger("app")
@@ -42,7 +42,14 @@ class SocketConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def chat_messages_seen(self, data):
-        Message.objects.filter(id__in=data["message_ids"]).update(read_status=True)
+        con = None
+        try:
+            con = Conversation.objects.get(id=data["conversation_id"])
+        except Exception as e:
+            log.error(str(e))
+        if con:
+            messages = con.messages.all().exclude(sender__id=self.user.id)
+            messages.update(is_read=True)
 
     async def connect(self):
         await self.accept()
@@ -65,15 +72,10 @@ class SocketConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.activity_group, self.channel_name)
         await self.update_status(True)
     async def receive(self, text_data=None, bytes_data=None):
-        if text_data:
-            print("=="*100)
-            print(text_data) 
-            text_data_json = json.loads(text_data)
 
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                text_data_json
-            )
+        await self.send(text_data=json.dumps({
+            'data': text_data
+        }))
 
     async def parser(self, event):
         await self.send(text_data=json.dumps({
@@ -109,7 +111,7 @@ class SocketConsumer(AsyncWebsocketConsumer):
             {
                 'type': 'seen',
                 "sender": event["sender"],
-                'message': event['message_ids']
+                'message': event['conversation_id']
             }
         )
 
