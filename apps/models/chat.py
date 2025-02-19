@@ -126,7 +126,17 @@ class Message(BaseModel):
         if self.conversation.message_limit == 0:
             self.conversation.message_limit += 1
             self.conversation.save()
-            
+class Reaction(BaseModel):
+    reaction = models.CharField(max_length=255)
+
+class MessageReact(BaseModel):
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="message_reaction")
+    reacted_by = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="profile_reactions")
+    reaction = models.ForeignKey(Reaction, on_delete=models.CASCADE, related_name="reactions")
+    def __str__(self):
+        return f"{self.reacted_by} - {self.reaction.reaction} on Message {self.message.id}"
+
+    
 class ConversationSettings(BaseModel):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="conversation_settings")
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="settings")

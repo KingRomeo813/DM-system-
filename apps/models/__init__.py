@@ -6,5 +6,7 @@ from .chat import (
     ConversationSettings,
     Profile,
     Attachments,
-    Request
+    Request, 
+    MessageReact,
+    Reaction
 )

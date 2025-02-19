@@ -2,9 +2,10 @@ import logging
 import json
 from django.http import HttpRequest
 
+from django.urls import reverse
 from django.conf import settings
 from django.utils import timezone
-from django.urls import reverse
+from django.db.models import Count
 from rest_framework import serializers
 
 from .. import models
@@ -139,6 +140,13 @@ class FollowerInfoSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     # sender = ProfileSerializer()
     # conversation = ConversationSerializer()
+    reaction_summary = serializers.SerializerMethodField()
+    def get_reaction_summary(self, obj):
+        """Counts reactions per message and returns the list"""
+
+        reactions = obj.message_reaction.values("reaction__reaction").annotate(count=Count("id")).order_by("-count")
+        return [{"reaction": r["reaction__reaction"], "count": r["count"]} for r in reactions]
+
     class Meta:
         model = models.Message
         fields = "__all__"
@@ -147,11 +155,49 @@ class MessageSerializer(serializers.ModelSerializer):
 class MessageInfoSerializer(serializers.ModelSerializer):
     sender = ProfileSerializer()
     conversation = ConversationSerializer()
+
+    reaction_summary = serializers.SerializerMethodField()
+    def get_reaction_summary(self, obj):
+        """Counts reactions per message and returns the list"""
+
+        reactions = obj.message_reaction.values("reaction__reaction").annotate(count=Count("id")).order_by("-count")
+        return [{"reaction": r["reaction__reaction"], "count": r["count"]} for r in reactions]
     class Meta:
         model = models.Message
         depth = 1
         fields = "__all__"
 
+
+class MessageReactSerializer(serializers.ModelSerializer):
+    # sender = ProfileSerializer()
+    # conversation = ConversationSerializer()
+    # reaction_summary = serializers.SerializerMethodField()
+    class Meta:
+        model = models.MessageReact
+        fields = ["id", "created_at", "updated_at", "is_active", "message", "reacted_by", "reaction"]
+    # def get_reaction_summary(self, obj):
+    #     """Counts reactions per message and returns the list"""
+    #     reactions = models.MessageReact.objects.filter(message=obj.message) \
+    #         .values("reaction__reaction") \
+    #         .annotate(count=Count("id")) \
+    #         .order_by("-count")  # Order by most used reactions
+
+    #     return [{"reaction": r["reaction__reaction"], "count": r["count"]} for r in reactions]
+
+class MessageReactInfoSerializer(serializers.ModelSerializer):
+    # reaction_summary = serializers.SerializerMethodField()
+    class Meta:
+        model = models.MessageReact
+        depth = 1
+        fields = ["id", "created_at", "updated_at", "is_active", "message", "reacted_by", "reaction"]
+    # def get_reaction_summary(self, obj):
+    #     """Counts reactions per message and returns the list"""
+    #     reactions = models.MessageReact.objects.filter(message=obj.message) \
+    #         .values("reaction__reaction") \
+    #         .annotate(count=Count("id")) \
+    #         .order_by("-count")  # Order by most used reactions
+
+    #     return [{"reaction": r["reaction__reaction"], "count": r["count"]} for r in reactions]
 class RequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Request

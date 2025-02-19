@@ -1,5 +1,5 @@
 import logging
-from django.db.models import Q
+from django.db.models import Q, Count
 
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -15,6 +15,8 @@ from apps.models import (Conversation,
                         ConversationSettings,
                         Profile,
                         Request,
+                        MessageReact,
+                        Reaction,
                         Attachments)
 from apps.serializers import (MessageSerializer,
                             MessageInfoSerializer,
@@ -25,6 +27,10 @@ from apps.serializers import (MessageSerializer,
                             FollowerSerializer,
                             FollowerInfoSerializer,
                             RequestSerializer,
+                            AttachmentSerializer,
+                            RequestInfoSerializer,
+                            MessageReactSerializer,
+                            MessageReactInfoSerializer,
                             AttachmentSerializer,
                             RequestInfoSerializer)
 
@@ -68,6 +74,40 @@ class MessageViewset(viewsets.ModelViewSet):
 
         return Response("Message couldn't be sent please try again", status=status.HTTP_400_BAD_REQUEST)
         
+class MessageReactViewset(viewsets.ModelViewSet):
+    permission_classes = [CustomAuthenticated]
+    http_method_names = ['get', 'put', 'delete', 'patch', "post"]
+    queryset = MessageReact.objects.filter(is_active=True).order_by("-created_at")
+    # search_fields = ['id', "conversation__id"]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    filterset_fields = {
+        'id': ['exact'],
+        'message__id': ['exact'],
+        'reaction': ['exact'],
+
+    }
+    def get_queryset(self):
+        user = self.request.user
+        return MessageReact.objects.filter(
+            is_active=True,
+        ).order_by("-created_at")
+
+    def get_serializer_class(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return MessageReactInfoSerializer
+        return MessageReactSerializer
+
+    def create(self, request, *args, **kwargs):
+        try:
+            data = request.data.copy()
+            if not "reaction" in data:
+                return Response("Reaction is required", status=status.HTTP_400_BAD_REQUEST)
+            reaction, _ = Reaction.objects.get_or_create(reaction=data["reaction"])
+            message = Message.objects.get(id=data["message"])
+            react = MessageReact.objects.create(message=message, reaction=reaction, reacted_by=request.user)
+            return Response(MessageReactSerializer(react).data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 class MessageForwardViewSet(viewsets.ModelViewSet):
 
     permission_classes = [CustomAuthenticated]
