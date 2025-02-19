@@ -48,13 +48,13 @@ class SocketConsumer(AsyncWebsocketConsumer):
         con = None
         try:
             con = Conversation.objects.get(id=data["conversation_id"])
-            print(con)
         except Exception as e:
             log.error(str(e))
         if con:
-            log.error("="*100)
+            log.error("Error 2")
             
-            messages = con.messages.all().exclude(sender__id=self.user.id)
+            messages = con.messages.filter(is_read=False).exclude(sender__id=self.user.id)
+            print(messages)
             messages.update(is_read=True)
 
     async def connect(self):
@@ -81,8 +81,9 @@ class SocketConsumer(AsyncWebsocketConsumer):
         log.error("Received text")
         log.error(text_data)
         data = json.loads(text_data)
-        await self.send(text_data)
-
+        await self.channel_layer.group_send(
+            self.room_group_name, data
+        )
     async def parser(self, event):
         await self.send(text_data=json.dumps({
             'data': event['message']
@@ -112,7 +113,7 @@ class SocketConsumer(AsyncWebsocketConsumer):
     
     async def messages_seen(self, event):
         log.error("=================== Messages seen =================")
-        self.chat_messages_seen(event)
+        await self.chat_messages_seen(event)
         await self.channel_layer.group_send(
             f'chat_{event["receiver"]}',
             {
