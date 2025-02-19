@@ -250,7 +250,7 @@ LOGGING = {
         },
         'apps': {
             'handlers': ['file', 'console'],  # Add console handler here
-            'level': 'INFO',  # Set the level to capture all logs
+            'level': 'DEBUG',  # Set the level to capture all logs
             'propagate': False,
         },
     },

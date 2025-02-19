@@ -12,7 +12,8 @@ from channels.db import database_sync_to_async
 from apps.models import Profile, Message, Conversation
 from apps.repositories import ProfileRepo
 
-log = logging.getLogger("app")
+log = logging.getLogger("apps")
+log.error("="*100)
 
 class SocketConsumer(AsyncWebsocketConsumer):
     async def token_parser(self):
@@ -42,12 +43,17 @@ class SocketConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def chat_messages_seen(self, data):
+        # print("chatings")
+        log.error("="*100)
         con = None
         try:
             con = Conversation.objects.get(id=data["conversation_id"])
+            print(con)
         except Exception as e:
             log.error(str(e))
         if con:
+            log.error("="*100)
+            
             messages = con.messages.all().exclude(sender__id=self.user.id)
             messages.update(is_read=True)
 
@@ -72,10 +78,10 @@ class SocketConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.activity_group, self.channel_name)
         await self.update_status(True)
     async def receive(self, text_data=None, bytes_data=None):
-
-        await self.send(text_data=json.dumps({
-            'data': text_data
-        }))
+        log.error("Received text")
+        log.error(text_data)
+        data = json.loads(text_data)
+        await self.send(text_data)
 
     async def parser(self, event):
         await self.send(text_data=json.dumps({
@@ -105,6 +111,7 @@ class SocketConsumer(AsyncWebsocketConsumer):
         )
     
     async def messages_seen(self, event):
+        log.error("=================== Messages seen =================")
         self.chat_messages_seen(event)
         await self.channel_layer.group_send(
             f'chat_{event["receiver"]}',
