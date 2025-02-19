@@ -81,8 +81,13 @@ class ConversationSerializer(serializers.ModelSerializer):
     unread_messages = serializers.SerializerMethodField()
 
     def get_unread_messages(self, obj):
-        if obj.messages.filter(is_active=True).exists():
-            return obj.messages.count()
+        request = self.context.get("request")
+        if not request or not request.user:
+            return None
+
+        user_profile = request.user
+        if obj.messages.filter(is_active=True, is_read=False).exists():
+            return obj.messages.filter(is_active=True, is_read=False).exclude(sender__id=user_profile.id).count()
         return 0
     
     def get_requests(self, obj):
@@ -136,8 +141,13 @@ class ConversationInfoSerializer(serializers.ModelSerializer):
     unread_messages = serializers.SerializerMethodField()
 
     def get_unread_messages(self, obj):
-        if obj.messages.filter(is_active=True).exists():
-            return obj.messages.count()
+        request = self.context.get("request")
+        if not request or not request.user:
+            return None
+
+        user_profile = request.user
+        if obj.messages.filter(is_active=True, is_read=False).exists():
+            return obj.messages.filter(is_active=True, is_read=False).exclude(sender__id=user_profile.id).count()
         return 0
     
     def get_last_message(self, obj):
