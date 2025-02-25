@@ -98,7 +98,8 @@ class GeminiConsumer(AsyncWebsocketConsumer):
 
             logger.info(f"Setup request received with config: {generation_config}, voice: {voice_name}")
 
-            # Initialize Gemini model with only the generation configuration
+            # Initialize Gemini model with just the generation configuration
+            # Note: voice_config is NOT passed here in the constructor
             self.gemini_session = genai.GenerativeModel(
                 model_name="gemini-pro",
                 generation_config=generation_config
@@ -198,13 +199,56 @@ class GeminiConsumer(AsyncWebsocketConsumer):
     async def process_model_response(self, response, user_id):
         """Process and send the model's response to the client."""
         try:
-            if response and response.text:
+            # Handle text response
+            if response and hasattr(response, 'text') and response.text:
                 await self.send(json.dumps({
                     "user_id": user_id,
                     "type": "text",
                     "content": response.text
                 }))
+                logger.debug(f"Text response sent to client")
 
+            # Handle audio/media responses
+            if hasattr(response, 'parts'):
+                for part in response.parts:
+                    if hasattr(part, 'inline_data') and part.inline_data is not None:
+                        mime_type = part.inline_data.mime_type
+                        if mime_type.startswith('audio/'):
+                            base64_audio = base64.b64encode(part.inline_data.data).decode('utf-8')
+                            await self.send(json.dumps({
+                                "user_id": user_id,
+                                "type": "audio",
+                                "mime_type": mime_type,
+                                "content": base64_audio
+                            }))
+                            logger.debug(f"Audio response sent to client")
+            
+            # Alternative response format handling (for newer API versions)
+            elif hasattr(response, 'candidates'):
+                for candidate in response.candidates:
+                    if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                        for part in candidate.content.parts:
+                            if hasattr(part, 'text') and part.text:
+                                await self.send(json.dumps({
+                                    "user_id": user_id,
+                                    "type": "text",
+                                    "content": part.text
+                                }))
+                                logger.debug(f"Text response sent from candidate")
+                            
+                            if hasattr(part, 'inline_data') and part.inline_data is not None:
+                                mime_type = part.inline_data.mime_type
+                                if mime_type.startswith('audio/'):
+                                    base64_audio = base64.b64encode(part.inline_data.data).decode('utf-8')
+                                    await self.send(json.dumps({
+                                        "user_id": user_id,
+                                        "type": "audio",
+                                        "mime_type": mime_type, 
+                                        "content": base64_audio
+                                    }))
+                                    logger.debug(f"Audio response sent from candidate")
+
+            # Send turn complete message
             await self.send(json.dumps({
                 "user_id": user_id,
                 "status": "turn_complete"
