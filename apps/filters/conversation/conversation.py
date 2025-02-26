@@ -26,4 +26,4 @@ class ConversationFilter(django_filters.FilterSet):
 
     class Meta:
         model = Conversation
-        fields = ['id', 'name', 'profiles', 'message_limit', 'created_at', 'room_type']
+        fields = ['id', 'name', "approved", 'profiles', 'message_limit', 'created_at', 'room_type']
