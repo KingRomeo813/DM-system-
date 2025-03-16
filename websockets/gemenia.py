@@ -1,169 +1,90 @@
-# import json
-# import asyncio
-# import base64
-# from channels.generic.websocket import AsyncWebsocketConsumer
-# from google import genai  # Ensure you have this package installed and configured
-# import os
+import gc
+async def receive_from_gemini():
+    """Receives responses from the Gemini API and forwards them to the client, looping until turn is complete."""
+    try:
+        while True:
+            try:
+                print("receiving from gemini")
+                import time
+                start_time = time.time() 
+                async for response in session.receive():
+                    end_time = time.time()
+                    print(f"Time to receive response: {end_time - start_time} seconds")
+                    print(":::::::::::::::::::::::::::::::::0000000000000")
+                    print(">>>>>>>>>>>>>>>>>>>>>",response.server_content)
+                    print(f"response: {response}")
+                    if response.server_content is None:
+                        # if response.tool_call is not None:
+                        #       #handle the tool call
+                        #        print(f"Tool call received: {response.tool_call}")
 
-# # Set your API key if not done elsewhere
-# os.environ['GOOGLE_API_KEY'] 
-# MODEL = "gemini-2.0-flash-exp"  # Replace with your model ID
+                        #        function_calls = response.tool_call.function_calls
+                        #        function_responses = []
 
-# client = genai.Client(
-#     http_options={'api_version': 'v1alpha'}
-# )
+                        #        for function_call in function_calls:
+                        #              name = function_call.name
+                        #              args = function_call.args
+                        #              # Extract the numeric part from Gemini's function call ID
+                        #              call_id = function_call.id
 
-# class GeminiConsumer(AsyncWebsocketConsumer):
-#     async def connect(self):
-#         await self.accept()
-#         self.gemini_session = None
-#         print("WebSocket connected.")
-
-#     async def disconnect(self, close_code):
-#         if self.gemini_session:
-#             # If the session provides a close method, call it here
-#             await self.gemini_session.close()
-#         print("WebSocket disconnected with code:", close_code)
-
-#     async def receive(self, text_data=None, bytes_data=None):
-#         message = text_data or (bytes_data.decode("utf-8") if bytes_data else None)
-#         if not message:
-#             return
-
-#         data = json.loads(message)
-#         # If it's the initial setup message
-#         if "setup" in data:
-#             config = data.get("setup", {})
-#             # Start the Gemini session in a background task
-#             asyncio.create_task(self.start_gemini_session(config))
-#         elif "realtime_input" in data:
-#             if self.gemini_session:
-#                 for chunk in data["realtime_input"]["media_chunks"]:
-#                     if chunk["mime_type"] == "audio/pcm":
-#                         await self.gemini_session.send({
-#                             "mime_type": "audio/pcm", 
-#                             "data": chunk["data"]
-#                         })
-#                     elif chunk["mime_type"] == "image/jpeg":
-#                         await self.gemini_session.send({
-#                             "mime_type": "image/jpeg", 
-#                             "data": chunk["data"]
-#                         })
-#         else:
-#             print("Unrecognized message:", data)
-
-#     async def start_gemini_session(self, config):
-#         try:
-#             async with client.aio.live.connect(model=MODEL, config=config) as session:
-#                 self.gemini_session = session
-#                 print("Connected to Gemini API")
-#                 async for response in session.receive():
-#                     if response.server_content is None:
-#                         print("Unhandled server message:", response)
-#                         continue
-
-#                     model_turn = response.server_content.model_turn
-#                     if model_turn:
-#                         for part in model_turn.parts:
-#                             if hasattr(part, "text") and part.text is not None:
-#                                 await self.send(json.dumps({"text": part.text}))
-#                             elif hasattr(part, "inline_data") and part.inline_data is not None:
-#                                 base64_audio = base64.b64encode(part.inline_data.data).decode("utf-8")
-#                                 await self.send(json.dumps({"audio": base64_audio}))
-#                     if response.server_content.turn_complete:
-#                         print("Turn complete")
-#         except Exception as e:
-#             print("Error in Gemini session:", e)
-#         finally:
-#             print("Gemini session closed")
-
-import json
-import asyncio
-import base64
-from channels.generic.websocket import AsyncWebsocketConsumer
-from google import genai  # Ensure you have this package installed and configured
-import os
-
-# ✅ Load API Key Securely
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-
-if not GOOGLE_API_KEY:
-    raise ValueError("❌ Google API Key not set! Set GOOGLE_API_KEY in environment variables.")
-
-MODEL = "gemini-2.0-flash-exp"
-
-# ✅ Initialize Gemini Client
-client = genai.Client(
-    http_options={'api_version': 'v1alpha'},
-    api_key=GOOGLE_API_KEY
-)
+                        #              # Validate function name
+                        #              if name == "set_light_values":
+                        #                   try:
+                        #                       result = set_light_values(int(args["brightness"]), args["color_temp"])
+                        #                       function_responses.append(
+                        #                          {
+                        #                              "name": name,
+                        #                              #"response": {"result": "The light is broken."},
+                        #                              "response": {"result": result},
+                        #                              "id": call_id  
+                        #                          }
+                        #                       ) 
+                        #                       await client_websocket.send(json.dumps({"text": json.dumps(function_responses)}))
+                        #                       print("Function executed")
+                        #                   except Exception as e:
+                        #                       print(f"Error executing function: {e}")
+                        #                       continue
 
 
-class GeminiConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        """Accept WebSocket Connection and Keep It Alive."""
-        await self.accept()
-        print("✅ WebSocket connected.")
+                        #        # Send function response back to Gemini
+                        #        print(f"function_responses: {function_responses}")
+                        #        await session.send(function_responses)
+                        #        continue
 
-        self.gemini_session = None
-        self.keep_alive = True  # ✅ Keep the session alive
+                        #print(f'Unhandled server message! - {response}')
+                        continue
 
-    async def disconnect(self, close_code):
-        """Handles WebSocket Disconnection."""
-        print(f"🔌 WebSocket disconnected (Code: {close_code})")
-        
-        self.keep_alive = False  # ✅ Stop receiving from Gemini
-        
-        if self.gemini_session:
-            await self.gemini_session.__aexit__(None, None, None)  # ✅ Properly close Gemini session
+                    model_turn = response.server_content.model_turn
+                    if model_turn:
+                        for part in model_turn.parts:
+                            #print(f"part: {part}")
+                            if hasattr(part, 'text') and part.text is not None:
+                                #print(f"text: {part.text}")
+                                await client_websocket.send(json.dumps({"text": part.text}))
+                            elif hasattr(part, 'inline_data') and part.inline_data is not None:
+                                # if first_response:
+                                #print("audio mime_type:", part.inline_data.mime_type)
+                                    #first_response = False
+                                base64_audio = base64.b64encode(part.inline_data.data).decode('utf-8')
+                                await client_websocket.send(json.dumps({
+                                    "audio": base64_audio,
+                                }))
+                                print("audio received")
+                                del base64_audio
+                            del part
+                    if response.server_content.turn_complete:
+                        print('\n<Turn complete>')
+                    gc.collect()
+            except websockets.exceptions.ConnectionClosedOK:
+                print("Client connection closed normally (receive)")
+                break  # Exit the loop if the connection is closed
+            except Exception as e:
+                print(f"Error receiving from Gemini: {e}")
+                break # exit the lo
 
-    async def receive(self, text_data=None, bytes_data=None):
-        """Handles Incoming Messages from WebSocket Client."""
-        message = text_data or (bytes_data.decode("utf-8") if bytes_data else None)
-        if not message:
-            return
-
-        data = json.loads(message)
-
-        if "setup" in data:
-            config = data.get("setup", {})
-            asyncio.create_task(self.start_gemini_session(config))  # ✅ Start Gemini session in background
-
-        elif "realtime_input" in data:
-            if self.gemini_session:
-                for chunk in data["realtime_input"]["media_chunks"]:
-                    if chunk["mime_type"] in ["audio/pcm", "image/jpeg"]:
-                        await self.gemini_session.send({"mime_type": chunk["mime_type"], "data": chunk["data"]})
-        
-        else:
-            print("Unrecognized message:", data)
-
-    async def start_gemini_session(self, config):
-        """Maintains Connection with Gemini API Until WebSocket Disconnects."""
-        try:
-            async with client.aio.live.connect(model=MODEL, config=config) as session:
-                self.gemini_session = session
-                print("✅ Connected to Gemini API")
-
-                while self.keep_alive:  # ✅ Keep receiving responses
-                    async for response in session.receive():
-                        if response.server_content is None:
-                            print("Unhandled server message:", response)
-                            continue
-
-                        model_turn = response.server_content.model_turn
-                        if model_turn:
-                            for part in model_turn.parts:
-                                if hasattr(part, "text") and part.text is not None:
-                                    await self.send(json.dumps({"text": part.text}))
-                                elif hasattr(part, "inline_data") and part.inline_data is not None:
-                                    base64_audio = base64.b64encode(part.inline_data.data).decode("utf-8")
-                                    await self.send(json.dumps({"audio": base64_audio}))
-
-                        if response.server_content.turn_complete:
-                            print("✅ Turn complete")
-
-        except Exception as e:
-            print("❌ Error in Gemini session:", e)
-        finally:
-            print("🔄 Gemini session closed")
+    except Exception as e:
+            print(f"Error receiving from Gemini: {e}")
+    finally:
+            await client_websocket.close() 
+            gc.collect()
+            print("Gemini connection closed (receive)")

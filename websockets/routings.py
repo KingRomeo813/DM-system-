@@ -5,6 +5,6 @@ from .gemenia import GeminiConsumer
 websocket_urlpatterns = [
 
     path('ws/socket/', SocketConsumer.as_asgi()),
-    # path('ws/geminai/', GeminiConsumer.as_asgi()),
+    path('ws/geminai/', GeminiConsumer.as_asgi()),
 
 ]
