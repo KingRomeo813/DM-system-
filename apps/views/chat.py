@@ -316,7 +316,7 @@ class CustomRequestViewSet(generics.GenericAPIView):
                     print("request6")
                     return Response(serializer.data, status=status.HTTP_200_OK)
             else:
-                obj = Request.objects.create(sender=user, receiver=user2, status=Request.PENDING)
+                obj = Request.objects.create(sender=user, receiver=user2, status="pending")
                 serializer = RequestInfoSerializer(obj)
 
                 return Response(serializer.data, status=status.HTTP_200_OK)
