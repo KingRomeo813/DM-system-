@@ -283,7 +283,45 @@ class ConversationSettingsViewset(viewsets.ModelViewSet):
         if self.request.method in permissions.SAFE_METHODS:
             return ConversationSettingsInfoSerializer
         return ConversationSettingsSerializer
-    
+
+class CustomRequestViewSet(generics.GenericAPIView):
+    permission_classes = [CustomAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = request.data.copy()
+            user = request.user
+            repo = ProfileRepo(request.token)
+
+            try:
+                op_user = repo.profiles_by_ids(ids=[int(data.get("user_id", None))])
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                user2 = op_user[0]
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            print("request4")
+            q1 = Request.objects.filter(sender=user).filter(receiver=user2)
+            q2 = Request.objects.filter(sender=user2).filter(receiver=user)
+            if q1.exists() or q2.exists():
+                req = q1 | q2
+                print("request3")
+
+                if "status" in data:
+                    print("request5")
+
+                    req.update(status=data["status"])
+                    serializer = RequestInfoSerializer(req.first())  # Serialize single object
+                    print("request6")
+                    return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                obj = Request.objects.create(sender=user, receiver=user2, status=Request.PENDING)
+                serializer = RequestInfoSerializer(obj)
+
+                return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 class FollowerViewset(viewsets.ModelViewSet):
     permission_classes = [CustomAuthenticated]
     http_method_names = ['get', 

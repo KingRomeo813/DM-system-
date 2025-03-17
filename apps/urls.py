@@ -8,6 +8,7 @@ from .views import (MessageViewset,
                     MessageForwardViewSet,
                     AttachmentViewSet,
                     MessageReactViewset,
+                    CustomRequestViewSet,
                     RequestViewset)
 
 router = DefaultRouter()
@@ -22,7 +23,8 @@ router.register('message-react', MessageReactViewset, basename='message-react')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path("conversation-user/<int:user_id>/", ConversationUserViewSet.as_view(), name="conversation-users")
+    path("conversation-user/<int:user_id>/", ConversationUserViewSet.as_view(), name="conversation-users"),
+    path("requests-to-user/", CustomRequestViewSet.as_view(), name="request-to-user"),
     # path("message-forward/", ConversationUserViewSet.as_view(), name="conversation-users")
 
 ]

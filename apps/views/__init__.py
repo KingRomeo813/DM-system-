@@ -6,5 +6,6 @@ from .chat import (MessageViewset,
                    RequestViewset,
                    ConversationUserViewSet,
                    AttachmentViewSet,
-                   MessageReactViewset
+                   MessageReactViewset,
+                   CustomRequestViewSet
                    )
