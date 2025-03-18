@@ -310,7 +310,10 @@ class CustomRequestViewSet(generics.GenericAPIView):
 
                 if "status" in data:
                     print("request5")
+                    existing_request = req.first()
 
+                    if existing_request.receiver != user and data["status"]=="accepted":
+                        return Response({"error": "Sender can't accept the request"}, status=status.HTTP_400_BAD_REQUEST)
                     req.update(status=data["status"])
                     serializer = RequestInfoSerializer(req.first())  # Serialize single object
                     print("request6")
