@@ -9,11 +9,11 @@ from apps.media_storage import MediaStorage
 
 class Profile(BaseModel):
     user_id = models.CharField(max_length=255)
-    first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255)
+    first_name = models.CharField(max_length=255, null=True, blank=True)
+    last_name = models.CharField(max_length=255, null=True, blank=True)
     email = models.EmailField(unique=True)
-    username = models.CharField(max_length=255)
-    is_online = models.BooleanField(default=False)
+    username = models.CharField(max_length=255, null=True, blank=True)
+    is_online = models.BooleanField(default=False, null=True, blank=True)
     last_seen = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
