@@ -172,7 +172,8 @@ class ConversationInfoSerializer(serializers.ModelSerializer):
 
         if request and request.user:
             return ConversationSettingsInfoSerializer(
-                obj.settings.exclude(profile=request.user),  # Filter settings here
+                # obj.settings.exclude(profile=request.user),  # Filter settings here
+                obj.settings.filter(profile=request.user),  # Filter settings here
                 many=True
             ).data
         return ConversationSettingsInfoSerializer(obj.settings, many=True).data

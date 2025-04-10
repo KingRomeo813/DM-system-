@@ -113,14 +113,26 @@ class Message(BaseModel):
             return True
         return False
     
+    def is_conversation_blocked(self):
+        settings: ConversationSettings = self.conversation.settings
+        op_user_settings = settings.exclude(profile=self.sender).first()
+        current_user_settings = settings.filter(profile=self.sender).first()
+
+        if op_user_settings.is_blocked:
+            raise ValidationError("You can't send a message to this user, you are blocked")
         
+        if current_user_settings.is_blocked:
+            raise ValidationError("You can't send a message to this user, you blocked this conversation.")
+        
+
+
     def clean(self):
         if not self.can_send():
             raise ValidationError("You can't send a message to this user yet.")
 
     def save(self, *args, **kwargs):
         self.clean()
-        
+        self.is_conversation_blocked()
         super().save(*args, **kwargs)
 
         if self.conversation.message_limit == 0:
