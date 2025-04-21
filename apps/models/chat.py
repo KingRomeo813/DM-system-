@@ -129,6 +129,20 @@ class Message(BaseModel):
     def clean(self):
         if not self.can_send():
             raise ValidationError("You can't send a message to this user yet.")
+        self.check_request_status()
+
+    def check_request_status(self):
+        receiver = self.receiver()
+        if not receiver:
+            raise ValidationError("Receiver not found.")
+
+        existing_request = Request.objects.filter(
+            models.Q(sender=self.sender, receiver=receiver) |
+            models.Q(sender=receiver, receiver=self.sender)
+        ).first()
+        if existing_request and existing_request.status == 'blocked':
+            raise ValidationError("You cannot send a message due to a blocked request.")
+
 
     def save(self, *args, **kwargs):
         self.clean()
