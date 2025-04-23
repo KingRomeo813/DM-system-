@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets, permissions, status, filters, generics
-
+from apps.repositories.conversation.message_service import validate_and_create_message
 from apps.repositories import ProfileRepo
 from apps.celery_tasks import send_messages
 from apps.utils import CustomAuthenticated
@@ -66,6 +66,7 @@ class MessageViewset(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         if serializer.is_valid(raise_exception=True):
             try:
+                conversation, receiver = validate_and_create_message(data, request.user)
                 message = serializer.save()
                 send_messages.delay(message_id=message.id, user_id=message.receiver().id)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
