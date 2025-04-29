@@ -431,6 +431,30 @@ class RequestViewset(viewsets.ModelViewSet):
             log.error(str(e))
             raise    
 
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if serializer.validated_data.get("status") == "accepted":
+            conversation = (
+                Conversation.objects.filter(
+                    room_type="private", profiles=instance.sender
+                )
+                .filter(profiles=instance.receiver)
+                .distinct()
+                .first()
+            )
+
+            if conversation:
+                conversation.approved = True
+                conversation.save()
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+ 
 
 class AttachmentViewSet(viewsets.ModelViewSet):
     queryset = Attachments.objects.all()
