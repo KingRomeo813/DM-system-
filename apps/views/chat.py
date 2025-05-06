@@ -421,6 +421,20 @@ class RequestViewset(viewsets.ModelViewSet):
             repo = ProfileRepo(request.token)
             if data.get("receiver_user_id", None): 
                 data["receiver"] = str(repo.profiles_by_ids(ids=[data["receiver_user_id"]])[0].id)
+
+            existing_request = Request.objects.filter(
+                sender_id=data["sender"],
+                receiver_id=data["receiver"],
+                status="deleted"
+            ).first()
+            if existing_request:
+                # Reactivate the deleted request
+                existing_request.status = "pending"
+                existing_request.is_active = True
+                existing_request.save()
+                serializer = self.get_serializer(existing_request)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
             serializer = self.get_serializer(data=data)
             if serializer.is_valid(raise_exception=True):
                 print(serializer)
@@ -454,7 +468,26 @@ class RequestViewset(viewsets.ModelViewSet):
                 conversation.save()
 
         return Response(serializer.data, status=status.HTTP_200_OK)
- 
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Attempt to find and delete the associated private conversation
+        conversation = (
+            Conversation.objects.filter(
+                room_type="private", profiles=instance.sender
+            )
+            .filter(profiles=instance.receiver)
+            .distinct()
+            .first()
+        )
+
+        if conversation:
+            conversation.delete()
+
+        # Now delete the request itself
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class AttachmentViewSet(viewsets.ModelViewSet):
     queryset = Attachments.objects.all()

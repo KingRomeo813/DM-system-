@@ -97,8 +97,8 @@ class ConversationSerializer(serializers.ModelSerializer):
 
         user_profile = request.user
         other_profiles = obj.profiles.exclude(id=user_profile.id)
-        sent_requests = models.Request.objects.filter(sender=user_profile, receiver__in=other_profiles)
-        received_requests = models.Request.objects.filter(sender__in=other_profiles, receiver=user_profile)
+        sent_requests = models.Request.objects.filter(sender=user_profile, receiver__in=other_profiles).exclude(status="deleted")
+        received_requests = models.Request.objects.filter(sender__in=other_profiles, receiver=user_profile).exclude(status="deleted")
         all_requests = sent_requests | received_requests
         return RequestSerializer(all_requests, many=True).data
 
@@ -161,8 +161,8 @@ class ConversationInfoSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         other_profile = obj.profiles.exclude(id=request.user.id).first()
 
-        sent_requests = models.Request.objects.filter(sender = request.user, receiver = other_profile)
-        received_requests = models.Request.objects.filter(sender = other_profile, receiver = request.user)
+        sent_requests = models.Request.objects.filter(sender = request.user, receiver = other_profile).exclude(status="deleted")
+        received_requests = models.Request.objects.filter(sender = other_profile, receiver = request.user).exclude(status="deleted")
         all_requests = sent_requests | received_requests
         if request and request.user:
             return RequestSerializer(all_requests, many=True).data
