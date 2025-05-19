@@ -176,10 +176,36 @@ class ConversationViewset(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Conversation.objects.filter(
+        request_status = self.request.query_params.get("request_status", None)
+        statuses = request_status.split('|') if request_status else []
+
+        conversations = Conversation.objects.filter(
             is_active=True,
             profiles__in=[user]
         ).order_by("-created_at")
+
+        convo_ids = []
+
+        for convo in conversations:
+            other_profile = convo.profiles.exclude(id=user.id).first()
+            if not other_profile:
+                continue
+
+            request_qs = Request.objects.filter(
+                Q(sender=user, receiver=other_profile) | Q(sender=other_profile, receiver=user)
+            ).order_by('-created_at')
+
+            latest_request = request_qs.first()
+
+            if latest_request:
+                if not statuses or latest_request.status in statuses:
+                    convo_ids.append(convo.id)
+            elif not statuses:
+                # No request exists, but no filter was applied — include it
+                convo_ids.append(convo.id)
+
+        return Conversation.objects.filter(id__in=convo_ids).order_by("-created_at")
+
 
     def get_serializer_class(self):
         if self.request.method in permissions.SAFE_METHODS:
