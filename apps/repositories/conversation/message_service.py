@@ -20,7 +20,6 @@ def validate_and_create_message(data, user):
     request_qs = Request.objects.filter(
         Q(sender=user, receiver=receiver) | Q(sender=receiver, receiver=user)
     ).order_by("-created_at")
-
     if request_qs.exists():
         relationship = request_qs.first()
 
@@ -32,6 +31,11 @@ def validate_and_create_message(data, user):
             already_sent = Message.objects.filter(sender=user, conversation=conversation).exists()
             if already_sent:
                 raise PermissionDenied("You can only send one message while the request is pending.")
+
+        elif relationship.status == "hidden":
+            already_sent = Message.objects.filter(sender=user, conversation=conversation).exists()
+            if already_sent:
+                raise PermissionDenied("Message request is already sent!")
 
     # Passed validation
     return conversation, receiver

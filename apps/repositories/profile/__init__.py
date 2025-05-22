@@ -81,7 +81,8 @@ class ProfileRepo():
                 Dict[str, Union[str, Dict[str, str]]]: Email data ready for sending.
         """
         try:
-            obj, _ = Profile.objects.get_or_create(user_id=data["user_id"], email=data["email"])
+            obj, _ = Profile.objects.get_or_create(email=data["email"])
+            obj.user_id = data["user_id"]
             obj.first_name = data["first_name"]
             obj.last_name = data["last_name"]
             obj.username = data["username"]

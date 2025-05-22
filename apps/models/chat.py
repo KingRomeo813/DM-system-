@@ -209,6 +209,7 @@ class Request(BaseModel):
             ('accepted', 'Accepted'),
             ('blocked', 'Blocked'),
             ('deleted', 'Deleted'),
+            ('hidden', 'Hidden'),
         ],
         default='pending'
     )

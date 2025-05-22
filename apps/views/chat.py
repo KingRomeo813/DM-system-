@@ -63,7 +63,58 @@ class MessageViewset(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
         data["sender"] = str(request.user.id)
+        sender = request.user.id
         serializer = self.get_serializer(data=data)
+        conversation_id = data.get("conversation")
+        try:
+            conversation = Conversation.objects.prefetch_related("profiles").get(id=conversation_id)
+        except Conversation.DoesNotExist:
+            return Response({"detail": "Invalid conversation ID."}, status=status.HTTP_400_BAD_REQUEST)
+        conversation_user_ids = list(conversation.profiles.values_list("id", flat=True))
+        if conversation.room_type == Conversation.PRIVATE and len(conversation_user_ids) == 2:
+            if sender in conversation_user_ids:
+                other_user = next(uid for uid in conversation_user_ids if uid != sender)
+                # Check direct request
+                existing_request = Request.objects.filter(
+                    Q(sender=sender, receiver=other_user) |
+                    Q(sender=other_user, receiver=sender)
+                ).first()
+
+                if not existing_request:
+                    # Get sender friends
+                    sender_friends = Request.objects.filter(
+                        Q(sender=sender, status="accepted") | Q(receiver=sender, status="accepted")
+                    ).values_list("sender_id", "receiver_id")
+
+                    sender_friend_ids = set()
+                    for s, r in sender_friends:
+                        sender_friend_ids.update([s, r])
+                    sender_friend_ids.discard(sender)
+
+                    # Get receiver friends
+                    receiver_friends = Request.objects.filter(
+                        Q(sender=other_user, status="accepted") | Q(receiver=other_user, status="accepted")
+                    ).values_list("sender_id", "receiver_id")
+
+                    receiver_friend_ids = set()
+                    for s, r in receiver_friends:
+                        receiver_friend_ids.update([s, r])
+                    receiver_friend_ids.discard(other_user)
+
+                    mutual_ids = sender_friend_ids & receiver_friend_ids
+                    if mutual_ids:
+                        # Create hidden request
+                        sender_profile = Profile.objects.get(id=sender)
+                        receiver_profile = Profile.objects.get(id=other_user)
+                        hidden_request, created = Request.objects.get_or_create(
+                            sender=sender_profile,
+                            receiver=receiver_profile,
+                            defaults={"status": "hidden"}
+                        )
+                        if not created and hidden_request.status != "hidden":
+                            hidden_request.status = "hidden"
+                            hidden_request.save()
+
         if serializer.is_valid(raise_exception=True):
             try:
                 conversation, receiver = validate_and_create_message(data, request.user)
@@ -394,6 +445,7 @@ class FollowerViewset(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
 class RequestViewset(viewsets.ModelViewSet):
     permission_classes = [CustomAuthenticated]
     http_method_names = ['get', 
@@ -530,3 +582,22 @@ class AttachmentViewSet(viewsets.ModelViewSet):
 
         # Respond with the serialized data
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class HiddenRequestViewSet(viewsets.ModelViewSet):
+    queryset = Request.objects.filter(status='hidden')
+    serializer_class = RequestSerializer
+    permission_classes = [CustomAuthenticated]
+
+    def get_queryset(self):
+        # Users can only access their own hidden requests (as sender or receiver)
+        user = self.request.user
+        return self.queryset.filter(
+            sender=user
+        ) | self.queryset.filter(receiver=user)
+
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {"detail": "Creation of hidden requests is not allowed via this endpoint."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )

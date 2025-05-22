@@ -9,7 +9,8 @@ from .views import (MessageViewset,
                     AttachmentViewSet,
                     MessageReactViewset,
                     CustomRequestViewSet,
-                    RequestViewset)
+                    RequestViewset,
+                    HiddenRequestViewSet)
 
 router = DefaultRouter()
 router.register("message", MessageViewset, "message")
@@ -20,6 +21,7 @@ router.register("follow", FollowerViewset, "follow")
 router.register("request", RequestViewset, "request")
 router.register(r'upload-attachment', AttachmentViewSet, basename='upload_attachment')
 router.register('message-react', MessageReactViewset, basename='message-react')
+router.register(r'hidden-request', HiddenRequestViewSet, basename='hidden-request')
 
 urlpatterns = [
     path('', include(router.urls)),
