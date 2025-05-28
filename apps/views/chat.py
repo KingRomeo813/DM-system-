@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets, permissions, status, filters, generics
 from apps.repositories.conversation.message_service import validate_and_create_message
-from apps.repositories import ProfileRepo
+from apps.repositories import ProfileRepo, InteractionService
 from apps.celery_tasks import send_messages
 from apps.utils import CustomAuthenticated
 from apps.models import (Conversation,
@@ -286,6 +286,32 @@ class ConversationViewset(viewsets.ModelViewSet):
             serializer = self.get_serializer(data=data)
             if serializer.is_valid(raise_exception=True):
                 conversation = serializer.save()
+                for profile in op_profiles:
+                    both_private = user.is_private and profile.is_private
+                    both_public = not user.is_private and not profile.is_private
+                    int_service = InteractionService(request.token)
+                    get_follow_status = int_service.get_follow_request_status([profile.user_id, user.user_id])
+                    
+                    # if both accounts public and both follow each other, then request status = accepted
+                    if both_public:
+                        if get_follow_status['follow_request_exists']:
+                            req_status = 'accepted'
+                        else:
+                            req_status = 'pending'
+
+                    if both_private:
+                        if (get_follow_status.get('1 follows 2') == 'accepted' and get_follow_status.get('2 follows 1') == 'accepted'):
+                            req_status = 'accepted'
+                        else:
+                            req_status = 'pending'
+
+                    # if friends of friends then request status will be set as pending, if no mutal then it will be set as hidden
+                    follow_mutual_request = Follower.objects.filter(is_mutual=True).filter(Q(follower=profile.id, following=user.id) |Q(follower=user.id, following=profile.id))
+                    if follow_mutual_request.exists():
+                        req_status = "pending"
+                    else:
+                        req_status = "hidden"
+                    Request.objects.create(sender=user, receiver=profile, status=req_status)
                 for profile in conversation.profiles.all():
                     conversation.settings.get_or_create(profile=profile)
             return Response(serializer.data, status=status.HTTP_201_CREATED)

@@ -15,6 +15,7 @@ class Profile(BaseModel):
     username = models.CharField(max_length=255, null=True, blank=True)
     is_online = models.BooleanField(default=False, null=True, blank=True)
     last_seen = models.DateTimeField(null=True, blank=True)
+    is_private = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.first_name} - {self.last_name}"
