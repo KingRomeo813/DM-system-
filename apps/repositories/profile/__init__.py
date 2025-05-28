@@ -34,8 +34,10 @@ class ProfileRepo():
                     "username": profile["username"],
                     "online": False,
                     "last_seen": False,
+                    "is_private": profile["is_private"],
                 }
-                items.append(self.update_or_create(data=data))
+                created_profile = self.update_or_create(data=data)
+                items.append(created_profile)
             return items
         except Exception as e:
             log.error(str(e))
