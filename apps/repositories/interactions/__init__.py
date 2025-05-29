@@ -20,7 +20,7 @@ class InteractionService:
             raise ValueError("Exactly two profile IDs must be provided.")
 
         try:
-            endpoint = "{}/api/interaction/get-follow-request-status".format(base_url)
+            endpoint = "https://backend-api.oaysis.com/api/interaction/get-follow-request-status".format(base_url)
             params = {"ids": ",".join(str(i) for i in ids)}
             response = requests.get(endpoint, headers=self.headers, params=params)
             response.raise_for_status()
