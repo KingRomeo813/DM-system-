@@ -22,7 +22,7 @@ class InteractionService:
         try:
             endpoint = "{}/api/interaction/get-follow-request-status".format(base_url)
             params = {"ids": ",".join(str(i) for i in ids)}
-            response = requests.get(endpoint, headers=self.headers, params=params, timeout=5)
+            response = requests.get(endpoint, headers=self.headers, params=params)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
