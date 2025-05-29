@@ -286,32 +286,35 @@ class ConversationViewset(viewsets.ModelViewSet):
             serializer = self.get_serializer(data=data)
             if serializer.is_valid(raise_exception=True):
                 conversation = serializer.save()
-                for profile in op_profiles:
-                    both_private = user.is_private and profile.is_private
-                    both_public = not user.is_private and not profile.is_private
-                    int_service = InteractionService(request.token)
-                    get_follow_status = int_service.get_follow_request_status([profile.user_id, user.user_id])
-                    
-                    # if both accounts public and both follow each other, then request status = accepted
-                    if both_public:
-                        if get_follow_status['follow_request_exists']:
-                            req_status = 'accepted'
-                        else:
-                            req_status = 'pending'
+                try:
+                    for profile in op_profiles:
+                        both_private = user.is_private and profile.is_private
+                        both_public = not user.is_private and not profile.is_private
+                        int_service = InteractionService(request.token)
+                        get_follow_status = int_service.get_follow_request_status([profile.user_id, user.user_id])
+                        
+                        # if both accounts public and both follow each other, then request status = accepted
+                        if both_public:
+                            if get_follow_status['follow_request_exists']:
+                                req_status = 'accepted'
+                            else:
+                                req_status = 'pending'
 
-                    if both_private:
-                        if (get_follow_status.get('1 follows 2') == 'accepted' and get_follow_status.get('2 follows 1') == 'accepted'):
-                            req_status = 'accepted'
-                        else:
-                            req_status = 'pending'
+                        if both_private:
+                            if (get_follow_status.get('1 follows 2') == 'accepted' and get_follow_status.get('2 follows 1') == 'accepted'):
+                                req_status = 'accepted'
+                            else:
+                                req_status = 'pending'
 
-                    # if friends of friends then request status will be set as pending, if no mutal then it will be set as hidden
-                    follow_mutual_request = Follower.objects.filter(is_mutual=True).filter(Q(follower=profile.id, following=user.id) |Q(follower=user.id, following=profile.id))
-                    if follow_mutual_request.exists():
-                        req_status = "pending"
-                    else:
-                        req_status = "hidden"
-                    Request.objects.create(sender=user, receiver=profile, status=req_status)
+                        # if friends of friends then request status will be set as pending, if no mutal then it will be set as hidden
+                        follow_mutual_request = Follower.objects.filter(is_mutual=True).filter(Q(follower=profile.id, following=user.id) |Q(follower=user.id, following=profile.id))
+                        if follow_mutual_request.exists():
+                            req_status = "pending"
+                        else:
+                            req_status = "hidden"
+                        Request.objects.create(sender=user, receiver=profile, status=req_status)
+                except Exception as e:
+                    print("the error", str(e))
                 for profile in conversation.profiles.all():
                     conversation.settings.get_or_create(profile=profile)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
