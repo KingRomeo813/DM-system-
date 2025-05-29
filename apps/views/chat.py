@@ -282,37 +282,72 @@ class ConversationViewset(viewsets.ModelViewSet):
         if Conversation.objects.filter(profiles=user).filter(profiles=op_profiles[0]).exists():
             return Response({"error": "A private conversation between these two profiles already exists."}, status=status.HTTP_400_BAD_REQUEST)
         try:
-
             serializer = self.get_serializer(data=data)
             if serializer.is_valid(raise_exception=True):
                 conversation = serializer.save()
                 try:
                     for profile in op_profiles:
-                        both_private = user.is_private and profile.is_private
-                        both_public = not user.is_private and not profile.is_private
                         int_service = InteractionService(request.token)
-                        get_follow_status = int_service.get_follow_request_status([profile.user_id, user.user_id])
-                        
-                        # if both accounts public and both follow each other, then request status = accepted
-                        if both_public:
-                            if get_follow_status['follow_request_exists']:
-                                req_status = 'accepted'
-                            else:
-                                req_status = 'pending'
+                        follow_status = int_service.get_follow_request_status([user.user_id, profile.user_id])
 
-                        if both_private:
-                            if (get_follow_status.get('1 follows 2') == 'accepted' and get_follow_status.get('2 follows 1') == 'accepted'):
-                                req_status = 'accepted'
-                            else:
-                                req_status = 'pending'
+                        profile1 = user
+                        profile2 = profile
 
-                        # if friends of friends then request status will be set as pending, if no mutal then it will be set as hidden
-                        follow_mutual_request = Follower.objects.filter(is_mutual=True).filter(Q(follower=profile.id, following=user.id) |Q(follower=user.id, following=profile.id))
-                        if follow_mutual_request.exists():
-                            req_status = "pending"
-                        else:
+                        follows_1_to_2 = follow_status.get("p1_follows_p2") 
+                        follows_2_to_1 = follow_status.get("p2_follows_p1")
+
+                        req_status = "hidden"
+                        if follows_1_to_2 == "accepted" and follows_2_to_1 == "accepted":
+                            req_status = "accepted"
+
+                        elif follows_1_to_2:
+                            if not profile1.is_private and not profile2.is_private:
+                                req_status = "accepted"
+                            elif profile1.is_private and not profile2.is_private:
+                                req_status = "accepted"
+                            elif not profile1.is_private and profile2.is_private:
+                                req_status = "pending"
+                            elif profile1.is_private and profile2.is_private:
+                                req_status = "pending"
+
+                        elif follows_2_to_1:
+                            if not profile1.is_private and not profile2.is_private:
+                                req_status = "accepted"
+                            elif not profile1.is_private and profile2.is_private:
+                                req_status = "pending"
+                            elif profile1.is_private and not profile2.is_private:
+                                req_status = "accepted"
+                            elif profile1.is_private and profile2.is_private:
+                                req_status = "pending"
+
+                        if req_status not in ["accepted", "pending"]:
+                            mutual_follow = Follower.objects.filter(
+                                is_mutual=True
+                            ).filter(
+                                Q(follower=profile.id, following=user.id) |
+                                Q(follower=user.id, following=profile.id)
+                            )
+                            if mutual_follow.exists():
+                                if profile.is_private:
+                                    req_status = "pending"
+                                else:
+                                    req_status = "accepted"
+
+                        user_follow_ids = Follower.objects.filter(follower=user.id).values_list("following_id", flat=True)
+                        user_follower_ids = Follower.objects.filter(following=user.id).values_list("follower_id", flat=True)
+
+                        profile_follow_ids = Follower.objects.filter(follower=profile).values_list("following_id", flat=True)
+                        profile_follower_ids = Follower.objects.filter(following=profile).values_list("follower_id", flat=True)
+
+                        all_user_related_ids = set(user_follow_ids) | set(user_follower_ids)
+                        all_profile_related_ids = set(profile_follow_ids) | set(profile_follower_ids)
+                        if (
+                            profile.id not in all_user_related_ids and
+                            user.id not in all_profile_related_ids and
+                            req_status not in ["accepted", "pending"]
+                        ):
                             req_status = "hidden"
-                        Request.objects.create(sender=user, receiver=profile, status=req_status)
+                        Request.objects.update_or_create(sender=user, receiver=profile, defaults={'status': req_status})
                 except Exception as e:
                     print("the error", str(e))
                 for profile in conversation.profiles.all():
