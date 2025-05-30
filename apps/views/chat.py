@@ -343,8 +343,7 @@ class ConversationViewset(viewsets.ModelViewSet):
                         all_profile_related_ids = set(profile_follow_ids) | set(profile_follower_ids)
                         if (
                             profile.id not in all_user_related_ids and
-                            user.id not in all_profile_related_ids and
-                            req_status not in ["accepted", "pending"]
+                            user.id not in all_profile_related_ids
                         ):
                             req_status = "hidden"
                         Request.objects.update_or_create(sender=user, receiver=profile, defaults={'status': req_status})
