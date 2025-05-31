@@ -297,10 +297,9 @@ class ConversationViewset(viewsets.ModelViewSet):
                         follows_2_to_1 = follow_status.get("p2_follows_p1")
 
                         req_status = "hidden"
-                        if follows_1_to_2 == "accepted" and follows_2_to_1 == "accepted":
-                            req_status = "accepted"
+                        
 
-                        elif follows_1_to_2:
+                        if follows_1_to_2:
                             if not profile1.is_private and not profile2.is_private:
                                 req_status = "accepted"
                             elif profile1.is_private and not profile2.is_private:
@@ -346,6 +345,10 @@ class ConversationViewset(viewsets.ModelViewSet):
                             user.id not in all_profile_related_ids
                         ):
                             req_status = "hidden"
+                            
+                        if follows_1_to_2 == "accepted" and follows_2_to_1 == "accepted":
+                            req_status = "accepted"
+
                         Request.objects.update_or_create(sender=user, receiver=profile, defaults={'status': req_status})
                 except Exception as e:
                     print("the error", str(e))
