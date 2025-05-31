@@ -546,8 +546,8 @@ class RequestViewset(viewsets.ModelViewSet):
         user = self.request.user
         return Request.objects.filter(
             Q(sender=user) | Q(receiver=user),
+            Q(status="pending") | Q(status="hidden"),
             is_active=True,
-            status="pending"
         ).order_by("-created_at")
 
     def get_serializer_class(self):
@@ -587,10 +587,9 @@ class RequestViewset(viewsets.ModelViewSet):
             raise    
 
     def update(self, request, *args, **kwargs):
-        partial = kwargs.pop("partial", False)
+        # partial = kwargs.pop("partial", False)
         instance = self.get_object()
-
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
 
