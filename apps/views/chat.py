@@ -346,7 +346,7 @@ class ConversationViewset(viewsets.ModelViewSet):
                         ):
                             req_status = "hidden"
                             
-                        if follows_1_to_2 == "accepted" and follows_2_to_1 == "accepted":
+                        if follows_1_to_2 == "accepted" and follows_2_to_1 == "accepted" and not profile1.is_private and not profile2.is_private:
                             req_status = "accepted"
 
                         Request.objects.update_or_create(sender=user, receiver=profile, defaults={'status': req_status})
