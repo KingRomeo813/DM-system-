@@ -9,6 +9,7 @@ from apps.repositories.conversation.message_service import validate_and_create_m
 from apps.repositories import ProfileRepo, InteractionService
 from apps.celery_tasks import send_messages
 from apps.utils import CustomAuthenticated
+from apps.utils.utils import check_mutual
 from apps.models import (Conversation,
                         Follower,
                         Message,
@@ -335,8 +336,8 @@ class ConversationViewset(viewsets.ModelViewSet):
                         user_follow_ids = Follower.objects.filter(follower=user.id).values_list("following_id", flat=True)
                         user_follower_ids = Follower.objects.filter(following=user.id).values_list("follower_id", flat=True)
 
-                        profile_follow_ids = Follower.objects.filter(follower=profile).values_list("following_id", flat=True)
-                        profile_follower_ids = Follower.objects.filter(following=profile).values_list("follower_id", flat=True)
+                        profile_follow_ids = Follower.objects.filter(follower=profile.id).values_list("following_id", flat=True)
+                        profile_follower_ids = Follower.objects.filter(following=profile.id).values_list("follower_id", flat=True)
 
                         all_user_related_ids = set(user_follow_ids) | set(user_follower_ids)
                         all_profile_related_ids = set(profile_follow_ids) | set(profile_follower_ids)
@@ -460,7 +461,8 @@ class CustomRequestViewSet(generics.GenericAPIView):
                         return Response({"error": "Sender can't accept the request"}, status=status.HTTP_400_BAD_REQUEST)
                     req.update(status=data["status"])
                     serializer = RequestInfoSerializer(req.first())  # Serialize single object
-                    print("request6")
+                    is_mutual = check_mutual(user, user2)
+                    Follower.objects.create(follower=user, following=user2, is_mutual=is_mutual)
                     return Response(serializer.data, status=status.HTTP_200_OK)
             else:
                 obj = Request.objects.create(sender=user, receiver=user2, status="pending")
