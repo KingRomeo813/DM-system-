@@ -467,7 +467,8 @@ class CustomRequestViewSet(generics.GenericAPIView):
             else:
                 obj = Request.objects.create(sender=user, receiver=user2, status="pending")
                 serializer = RequestInfoSerializer(obj)
-
+                is_mutual = check_mutual(user, user2)
+                Follower.objects.create(follower=user, following=user2, is_mutual=is_mutual)
                 return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
