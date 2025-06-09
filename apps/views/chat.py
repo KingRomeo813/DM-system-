@@ -37,6 +37,7 @@ from apps.serializers import (MessageSerializer,
 
 from apps.filters import ConversationFilter
 log = logging.getLogger(__file__)
+import requests
 
 
 class MessageViewset(viewsets.ModelViewSet):
@@ -269,7 +270,22 @@ class ConversationViewset(viewsets.ModelViewSet):
         user = request.user
         repo = ProfileRepo(request.token)
         items = [str(request.user.id)]
-        
+        headers = {
+    'Authorization': 'Bearer {}'.format(request.token),
+    'Content-Type': 'application/json'
+        }
+
+        response = requests.get(
+            url='https://backend-api.oaysis.com/api/interaction/follow-list/?type=following',
+            headers=headers
+        )
+        followers_following_data = response.json()
+        if not followers_following_data:
+            response = requests.get(
+            url='https://backend-api.oaysis.com/api/interaction/follow-list/?type=followers',
+            headers=headers
+        )
+            followers_following_data = response.json()   
         try:
             if data.get("profiles_user_ids", []):
                 op_profiles = repo.profiles_by_ids(ids=data.get("profiles_user_ids", ""))
@@ -332,19 +348,8 @@ class ConversationViewset(viewsets.ModelViewSet):
                                     req_status = "pending"
                                 else:
                                     req_status = "accepted"
-
-                        user_follow_ids = Follower.objects.filter(follower=user.id).values_list("following_id", flat=True)
-                        user_follower_ids = Follower.objects.filter(following=user.id).values_list("follower_id", flat=True)
-
-                        profile_follow_ids = Follower.objects.filter(follower=profile.id).values_list("following_id", flat=True)
-                        profile_follower_ids = Follower.objects.filter(following=profile.id).values_list("follower_id", flat=True)
-
-                        all_user_related_ids = set(user_follow_ids) | set(user_follower_ids)
-                        all_profile_related_ids = set(profile_follow_ids) | set(profile_follower_ids)
-                        if (
-                            profile.id not in all_user_related_ids and
-                            user.id not in all_profile_related_ids
-                        ):
+                        
+                        if not followers_following_data:
                             req_status = "hidden"
                             
                         if (follows_1_to_2 == "accepted" or follows_2_to_1 == "accepted") and not profile1.is_private and not profile2.is_private:
