@@ -349,8 +349,8 @@ class ConversationViewset(viewsets.ModelViewSet):
                                 else:
                                     req_status = "accepted"
                         
-                        if not followers_following_data:
-                            req_status = "hidden"
+                        if followers_following_data:
+                            req_status = "pending"
                             
                         if (follows_1_to_2 == "accepted" or follows_2_to_1 == "accepted") and not profile1.is_private and not profile2.is_private:
                             req_status = "accepted"
