@@ -317,7 +317,7 @@ class ConversationViewset(viewsets.ModelViewSet):
                         follows_2_to_1 = follow_status.get("p2_follows_p1")
 
                         req_status = "hidden"
-                        if follows_1_to_2.lower() == 'following':
+                        if follows_1_to_2.lower() == 'accepted':
                             if not profile1.is_private and not profile2.is_private:
                                 req_status = "accepted"
                             elif profile1.is_private and not profile2.is_private:
@@ -327,7 +327,7 @@ class ConversationViewset(viewsets.ModelViewSet):
                             elif profile1.is_private and profile2.is_private:
                                 req_status = "pending"
 
-                        elif follows_2_to_1 == 'following':
+                        elif follows_2_to_1 == 'accepted':
                             if not profile1.is_private and not profile2.is_private:
                                 req_status = "accepted"
                             elif not profile1.is_private and profile2.is_private:
