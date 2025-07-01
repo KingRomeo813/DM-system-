@@ -1,4 +1,5 @@
 import logging
+from django.conf import settings
 from django.db.models import Q, Count
 
 from rest_framework.response import Response
@@ -39,6 +40,7 @@ from apps.filters import ConversationFilter
 log = logging.getLogger(__file__)
 import requests
 
+base_url = settings.BASE_URL
 
 class MessageViewset(viewsets.ModelViewSet):
     permission_classes = [CustomAuthenticated]
@@ -279,13 +281,13 @@ class ConversationViewset(viewsets.ModelViewSet):
         }
 
         response = requests.get(
-            url='https://backend-api.oaysis.com/api/interaction/follow-list/?type=following',
+            url = f'{base_url}/api/interaction/follow-list/?type=following',
             headers=headers
         )
         followers_following_data = response.json()
         if not followers_following_data['results']:
             response = requests.get(
-            url='https://backend-api.oaysis.com/api/interaction/follow-list/?type=followers',
+            url= f'{base_url}/api/interaction/follow-list/?type=followers',
             headers=headers
         )
             followers_following_data = response.json()   
